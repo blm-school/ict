@@ -46,31 +46,61 @@ document.addEventListener('click', (e) => {
 
 // =====================
 // Fetch data from Google Apps Script
+// Fetch Data with Local Cache (SWR Strategy)
 // =====================
-fetch('https://script.google.com/macros/s/AKfycbyvJ0NJ-x60hU4VTcaAvzjLnXtK2w53qQIyGHCruxC1ourHPp0tkvGuv5smsykw1UpTKg/exec', {
-  cache: 'force-cache'
-})
+const GAS_URL = 'https://script.google.com/macros/s/AKfycbyvJ0NJ-x60hU4VTcaAvzjLnXtK2w53qQIyGHCruxC1ourHPp0tkvGuv5smsykw1UpTKg/exec';
+const CACHE_KEY = 'COVERFLOW_JSON_V1';
+
+// 1. ลองดึงข้อมูลจาก LocalStorage มาแสดงก่อนทันที (ถ้ามี)
+const cachedData = localStorage.getItem(CACHE_KEY);
+if (cachedData) {
+  try {
+    imageData = JSON.parse(cachedData);
+    console.log("Loading from LocalStorage (Instant)");
+    renderApp(); // ฟังก์ชันช่วยรัน buildCoverflow, initImages, etc.
+  } catch (e) {
+    console.error("Cache corrupted, cleaning up...");
+    localStorage.removeItem(CACHE_KEY);
+  }
+}
+
+// 2. ดึงข้อมูลใหม่จาก GAS (Background Fetch)
+fetch(GAS_URL)
   .then(res => res.json())
   .then(data => {
-    imageData = data;
-
-    if (!imageData.length) {
-      currentTitle.textContent = 'ไม่พบข้อมูล';
-      currentDescription.textContent = '';
-      return;
+    console.log("Fresh data received from GAS");
+    
+    // ตรวจสอบว่าข้อมูลใหม่ต่างจากข้อมูลในแคชหรือไม่
+    const dataString = JSON.stringify(data);
+    if (dataString !== cachedData) {
+      imageData = data;
+      localStorage.setItem(CACHE_KEY, dataString); // เก็บลงแคชไว้ใช้ครั้งหน้า
+      
+      // อัปเดต UI ด้วยข้อมูลใหม่ (Re-build)
+      renderApp();
     }
-
-    buildCoverflow();
-    initImages();
-    updateCoverflow();
-    startAutoplay();
   })
   .catch(err => {
-    console.error(err);
-    currentTitle.textContent = 'โหลดข้อมูลไม่สำเร็จ';
-    currentDescription.textContent = '';
+    console.error("GAS Fetch Error:", err);
+    // ถ้าไม่มีทั้งแคชและเน็ตพัง ให้โชว์ Error
+    if (!imageData.length) {
+      currentTitle.textContent = 'โหลดข้อมูลไม่สำเร็จ';
+      currentDescription.textContent = '';
+    }
   });
 
+// ฟังก์ชันรวมสำหรับรันคำสั่งแสดงผล
+function renderApp() {
+  if (!imageData || imageData.length === 0) return;
+  
+  // เคลียร์ค่าเก่าก่อนสร้างใหม่ (ป้องกันการสร้างซ้ำซ้อน)
+  if (autoplayInterval) clearInterval(autoplayInterval);
+  
+  buildCoverflow();
+  initImages();
+  updateCoverflow();
+  startAutoplay();
+}
 // =====================
 // Build DOM
 // =====================
