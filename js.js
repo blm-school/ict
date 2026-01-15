@@ -44,63 +44,91 @@ document.addEventListener('click', (e) => {
   }
 });
 
+
 // =====================
-// Fetch data from Google Apps Script
-// Fetch Data with Local Cache (SWR Strategy)
+// Fetch Data & Auto-Refresh Logic (Instant Load + Update every 1 min)
 // =====================
 const GAS_URL = 'https://script.google.com/macros/s/AKfycbyvJ0NJ-x60hU4VTcaAvzjLnXtK2w53qQIyGHCruxC1ourHPp0tkvGuv5smsykw1UpTKg/exec';
 const CACHE_KEY = 'COVERFLOW_JSON_V1';
 
-// 1. ลองดึงข้อมูลจาก LocalStorage มาแสดงก่อนทันที (ถ้ามี)
-const cachedData = localStorage.getItem(CACHE_KEY);
-if (cachedData) {
-  try {
-    imageData = JSON.parse(cachedData);
-    console.log("Loading from LocalStorage (Instant)");
-    renderApp(); // ฟังก์ชันช่วยรัน buildCoverflow, initImages, etc.
-  } catch (e) {
-    console.error("Cache corrupted, cleaning up...");
-    localStorage.removeItem(CACHE_KEY);
+// 1. เริ่มทำงานทันทีที่โหลดหน้าจอ
+initData();
+
+// 2. ตั้งเวลาเช็คข้อมูลใหม่จาก Google Sheets ทุกๆ 1 นาที (60,000 ms)
+setInterval(fetchFreshData, 60000);
+
+function initData() {
+  // ดึงจาก LocalStorage ในเครื่องผู้ใช้มาโชว์ก่อน (เร็วระดับ 0 วินาที)
+  const cachedData = localStorage.getItem(CACHE_KEY);
+  if (cachedData) {
+    try {
+      imageData = JSON.parse(cachedData);
+      console.log("🚀 Loading from Local Cache (Instant)");
+      renderApp(); // วาดหน้าจอทันทีด้วยข้อมูลเก่า
+    } catch (e) {
+      console.error("Cache corrupted:", e);
+      localStorage.removeItem(CACHE_KEY);
+    }
   }
+  // สั่งให้ไปดึงข้อมูลใหม่จาก Server ทันทีในพื้นหลัง
+  fetchFreshData();
 }
 
-// 2. ดึงข้อมูลใหม่จาก GAS (Background Fetch)
-fetch(GAS_URL)
-  .then(res => res.json())
-  .then(data => {
-    console.log("Fresh data received from GAS");
-    
-    // ตรวจสอบว่าข้อมูลใหม่ต่างจากข้อมูลในแคชหรือไม่
-    const dataString = JSON.stringify(data);
-    if (dataString !== cachedData) {
-      imageData = data;
-      localStorage.setItem(CACHE_KEY, dataString); // เก็บลงแคชไว้ใช้ครั้งหน้า
-      
-      // อัปเดต UI ด้วยข้อมูลใหม่ (Re-build)
-      renderApp();
-    }
-  })
-  .catch(err => {
-    console.error("GAS Fetch Error:", err);
-    // ถ้าไม่มีทั้งแคชและเน็ตพัง ให้โชว์ Error
-    if (!imageData.length) {
-      currentTitle.textContent = 'โหลดข้อมูลไม่สำเร็จ';
-      currentDescription.textContent = '';
-    }
-  });
+function fetchFreshData() {
+  console.log("🔄 Checking for fresh data from Google Apps Script...");
+  
+  fetch(GAS_URL)
+    .then(res => res.json())
+    .then(data => {
+      const dataString = JSON.stringify(data);
+      const currentLocalCache = localStorage.getItem(CACHE_KEY);
 
-// ฟังก์ชันรวมสำหรับรันคำสั่งแสดงผล
+      // อัปเดต UI เฉพาะเมื่อข้อมูลใน Google Sheets เปลี่ยนไปจริงๆ เท่านั้น
+      if (dataString !== currentLocalCache) {
+        console.log("✨ Data changed! Updating UI with new content.");
+        imageData = data;
+        localStorage.setItem(CACHE_KEY, dataString); // เซฟทับแคชเดิม
+        renderApp(); // วาดหน้าจอใหม่
+      } else {
+        console.log("✅ Data is still the same. No UI update needed.");
+      }
+    })
+    .catch(err => {
+      console.error("❌ GAS Fetch Error:", err);
+      // กรณีเน็ตหลุดและไม่มีแคชเลย ให้แจ้งเตือน
+      if (!imageData || imageData.length === 0) {
+        currentTitle.textContent = 'โหลดข้อมูลไม่สำเร็จ';
+      }
+    });
+}
+
+// =====================
+// ฟังก์ชันสำหรับรันคำสั่งแสดงผล (วาดหน้าจอใหม่)
+// =====================
 function renderApp() {
   if (!imageData || imageData.length === 0) return;
   
-  // เคลียร์ค่าเก่าก่อนสร้างใหม่ (ป้องกันการสร้างซ้ำซ้อน)
-  if (autoplayInterval) clearInterval(autoplayInterval);
+  // 1. จำตำแหน่ง Index ปัจจุบันไว้ก่อน (เพื่อไม่ให้หน้าจอเด้งไปรูปแรกตอนอัปเดต)
+  const lastIndex = currentIndex;
   
+  // 2. ล้างการ Autoplay เดิมทิ้งก่อน (ป้องกันสไลด์วิ่งเร็วผิดปกติ)
+  if (autoplayInterval) {
+    clearInterval(autoplayInterval);
+    autoplayInterval = null;
+  }
+  
+  // 3. สั่งสร้าง HTML และสร้างจุด (Dots) ใหม่ตามข้อมูลล่าสุด
   buildCoverflow();
   initImages();
+
+  // 4. คืนค่าตำแหน่ง Index เดิม (ถ้าข้อมูลใหม่ยังมีจำนวนรูปถึงตำแหน่งเดิม)
+  currentIndex = lastIndex < imageData.length ? lastIndex : 0;
+  
+  // 5. อัปเดตการแสดงผลและเริ่มเล่น Autoplay ใหม่
   updateCoverflow();
   startAutoplay();
 }
+
 // =====================
 // Build DOM
 // =====================
@@ -310,4 +338,5 @@ function updatePlayPauseButton() {
 
 // เริ่มต้น
 updatePlayPauseButton();
+
 
