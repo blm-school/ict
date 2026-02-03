@@ -53,7 +53,6 @@ const CACHE_KEY = "COVERFLOW_JSON_V1";
 
 // 1. เริ่มทำงานทันทีที่โหลดหน้าจอ
 initData();
-fetchFreshData();
 
 // 2. ตั้งเวลาเช็คข้อมูลใหม่จาก Google Sheets ทุกๆ 1 นาที (60,000 ms)
 setInterval(fetchFreshData, 60000);
@@ -345,3 +344,4 @@ function updatePlayPauseButton() {
 
 // เริ่มต้น
 updatePlayPauseButton();
+
