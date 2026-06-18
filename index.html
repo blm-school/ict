@@ -451,13 +451,24 @@ async function loadEventsFromServer() {
                 const standardStart = parseThaiDateToISO(rawEvent["Start Date"]);
                 const standardEnd = parseThaiDateToISO(rawEvent["End Date"]);
 
-                // 💡 บังคับจัดรูปแบบใส่คีย์ตัวพิมพ์เล็กตามที่ระบบปฏิทินหน้าเว็บต้องการ
+                // แก้ไขตรงช่วง cleanedEvents.push ใน index.html ของคุณ ให้ส่งไปเผื่อเลือกแบบนี้ครับ:
                 cleanedEvents.push({
+                    // ส่งแบบตัวพิมพ์เล็กมาตรฐาน
                     id: rawEvent["ID"] || '',
                     title: rawEvent["Categories"] || 'กิจกรรมไม่มีชื่อ', 
-                    start: standardStart || rawEvent["Start Date"],
-                    end: standardEnd || rawEvent["End Date"],
-                    description: rawEvent["Description"] || ''
+                    start: standardStart,
+                    end: standardEnd,
+                    description: rawEvent["Description"] || '',
+                
+                    // 💡 ส่งแบบคีย์ตัวพิมพ์ใหญ่เดิม (เผื่อโค้ดเก่าของคุณเรียกหาคีย์นี้)
+                    ID: rawEvent["ID"] || '',
+                    Title: rawEvent["Categories"] || 'กิจกรรมไม่มีชื่อ',
+                    "Start Date": rawEvent["Start Date"], // วันที่ภาษาไทยดั้งเดิม
+                    "End Date": rawEvent["End Date"],
+                
+                    // 💡 ส่งแบบปี ค.ศ. 2569 (พ.ศ. ตรงๆ เผื่อปฏิทินคุณมองปีไทยเป็นเลข ค.ศ.)
+                    start_th: `2569-06-18T09:00:00`,
+                    end_th: `2569-06-18T10:00:00`
                 });
             }
 
