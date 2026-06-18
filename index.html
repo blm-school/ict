@@ -424,8 +424,8 @@
   }
 
   /**
-   * โหลดข้อมูลกิจกรรมทั้งหมดด้วย Fetch API
-   */
+ * โหลดข้อมูลกิจกรรมทั้งหมดด้วย Fetch API
+ */
 async function loadEventsFromServer() {
     try {
         console.log("📅 [Front-end] กำลังเรียกข้อมูลจาก Google Sheets...");
@@ -454,7 +454,7 @@ async function loadEventsFromServer() {
                 // 💡 บังคับจัดรูปแบบใส่คีย์ตัวพิมพ์เล็กตามที่ระบบปฏิทินหน้าเว็บต้องการ
                 cleanedEvents.push({
                     id: rawEvent["ID"] || '',
-                    title: rawEvent["Categories"] || 'กิจกรรมไม่มีชื่อ', // จาก Log ช่อง Categories เก็บคำว่า "ถ่ายภาพ" เอาไว้ เลยสลับมาใช้ตรงนี้เป็นชื่องานครับ
+                    title: rawEvent["Categories"] || 'กิจกรรมไม่มีชื่อ', 
                     start: standardStart || rawEvent["Start Date"],
                     end: standardEnd || rawEvent["End Date"],
                     description: rawEvent["Description"] || ''
@@ -467,20 +467,31 @@ async function loadEventsFromServer() {
             // ส่งข้อมูลที่คลีนแล้วเข้าตัวแปรปฏิทินของหน้าเว็บคุณ
             window.calendarEvents = cleanedEvents; 
 
-            // สั่งวาดปฏิทินใหม่ด้วยข้อมูลชุดนี้
+            // สั่งวาดปฏิทิน
             if (typeof renderCalendar === "function") {
                 renderCalendar(cleanedEvents); 
-            } else if (typeof updateCalendar === "function") {
-                updateCalendar();
             }
-            
         } else {
             console.warn("⚠️ API ส่งค่ากลับมาไม่สำเร็จ:", result.message);
             loadLocalEvents();
         }
+
     } catch (error) {
         console.error("❌ พังตอนรับข้อมูลมาวาดปฏิทิน:", error);
         loadLocalEvents();
+    } finally {
+        // 💡 บังคับซ่อนข้อความโหลดเสมอเมื่อทำงานเสร็จ (ไม่ว่าจะดึงข้อมูลสำเร็จหรือพัง)
+        
+        // หากระบบเดิมมีฟังก์ชันปิดหน้าโหลด เช่น hideLoading(); หรือ toggleLoading(false); ให้เอาคอมเมนต์ออกแล้วเรียกใช้ตรงนี้ได้เลยครับ
+        // hideLoading(); 
+
+        // ดักซ่อนผ่าน ID (ตรวจสอบ ID ในหน้า HTML ของคุณอีกครั้งให้ตรงกัน)
+        const loadingElement = document.getElementById("loading-overlay"); 
+        if (loadingElement) {
+            loadingElement.style.display = "none";
+        }
+        
+        console.log("🏁 ปิดหน้าต่างโหลดเรียบร้อย");
     }
 }
 
