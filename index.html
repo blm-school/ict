@@ -479,13 +479,18 @@ async function loadEventsFromServer() {
             window.calendarEvents = cleanedEvents; 
 
             // สั่งวาดปฏิทิน
-            if (typeof renderCalendar === "function") {
-                renderCalendar(cleanedEvents); 
+            if (typeof calendar !== "undefined") {
+                console.log("🔄 กำลังยัดข้อมูลและสั่งให้ FullCalendar วาดใหม่...");
+                // ล้างกิจกรรมเก่าบนหน้าจอออกก่อน
+                calendar.removeAllEvents(); 
+                // เติมกิจกรรมใหม่เข้าไป
+                calendar.addEventSource(cleanedEvents); 
+                // สั่งให้ปฏิทินวาดตัวเองใหม่ทันที
+                calendar.render(); 
+            } else if (typeof renderCalendar === "function") {
+                // ถ้าคุณสร้างฟังก์ชันแยกไว้ ให้ส่งเข้าฟังก์ชันเดิม
+                renderCalendar(cleanedEvents);
             }
-        } else {
-            console.warn("⚠️ API ส่งค่ากลับมาไม่สำเร็จ:", result.message);
-            loadLocalEvents();
-        }
 
     } catch (error) {
         console.error("❌ พังตอนรับข้อมูลมาวาดปฏิทิน:", error);
