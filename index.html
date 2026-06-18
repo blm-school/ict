@@ -426,6 +426,9 @@
   /**
  * โหลดข้อมูลกิจกรรมทั้งหมดด้วย Fetch API
  */
+/**
+ * โหลดข้อมูลกิจกรรมทั้งหมดด้วย Fetch API (เวอร์ชันแก้ไขโครงสร้างพัง)
+ */
 async function loadEventsFromServer() {
     try {
         console.log("📅 [Front-end] กำลังเรียกข้อมูลจาก Google Sheets...");
@@ -451,22 +454,21 @@ async function loadEventsFromServer() {
                 const standardStart = parseThaiDateToISO(rawEvent["Start Date"]);
                 const standardEnd = parseThaiDateToISO(rawEvent["End Date"]);
 
-                // แก้ไขตรงช่วง cleanedEvents.push ใน index.html ของคุณ ให้ส่งไปเผื่อเลือกแบบนี้ครับ:
+                // จัดรูปแบบส่งไปทุกระบบคีย์ (ป้องกันปัญหาอ่านชื่อคีย์ไม่เจอ)
                 cleanedEvents.push({
-                    // ส่งแบบตัวพิมพ์เล็กมาตรฐาน
                     id: rawEvent["ID"] || '',
                     title: rawEvent["Categories"] || 'กิจกรรมไม่มีชื่อ', 
                     start: standardStart,
                     end: standardEnd,
                     description: rawEvent["Description"] || '',
                 
-                    // 💡 ส่งแบบคีย์ตัวพิมพ์ใหญ่เดิม (เผื่อโค้ดเก่าของคุณเรียกหาคีย์นี้)
+                    // 💡 คีย์ตัวพิมพ์ใหญ่เดิม (เผื่อระบบปฏิทินเดิมของคุณกวาดหาคีย์นี้)
                     ID: rawEvent["ID"] || '',
                     Title: rawEvent["Categories"] || 'กิจกรรมไม่มีชื่อ',
-                    "Start Date": rawEvent["Start Date"], // วันที่ภาษาไทยดั้งเดิม
+                    "Start Date": rawEvent["Start Date"], 
                     "End Date": rawEvent["End Date"],
                 
-                    // 💡 ส่งแบบปี ค.ศ. 2569 (พ.ศ. ตรงๆ เผื่อปฏิทินคุณมองปีไทยเป็นเลข ค.ศ.)
+                    // 💡 ส่งแบบ พ.ศ. ตรงๆ (ปี 2569 เผื่อหน้าเว็บตั้งค่าแสดงปีไทยแล้วเอ๋อ ค.ศ.)
                     start_th: `2569-06-18T09:00:00`,
                     end_th: `2569-06-18T10:00:00`
                 });
@@ -475,39 +477,40 @@ async function loadEventsFromServer() {
             console.log(`✅ [Front-end] แปลงข้อมูลไทยเป็นสากลสำเร็จ! พร้อมวาด ${cleanedEvents.length} รายการ`);
             console.log("✨ ข้อมูลคลีนๆ ที่จะป้อนเข้าปฏิทิน:", cleanedEvents);
 
-            // ส่งข้อมูลที่คลีนแล้วเข้าตัวแปรปฏิทินของหน้าเว็บคุณ
+            // ส่งข้อมูลที่คลีนแล้วเข้าตัวแปรปฏิทินของหน้าเว็บ
             window.calendarEvents = cleanedEvents; 
 
-            // สั่งวาดปฏิทิน
+            // 🔄 สั่งวาดปฏิทินลงหน้าจอทันที
             if (typeof calendar !== "undefined") {
-                console.log("🔄 กำลังยัดข้อมูลและสั่งให้ FullCalendar วาดใหม่...");
-                // ล้างกิจกรรมเก่าบนหน้าจอออกก่อน
+                console.log("🔄 กำลังอัปเดตข้อมูลเข้า FullCalendar...");
                 calendar.removeAllEvents(); 
-                // เติมกิจกรรมใหม่เข้าไป
                 calendar.addEventSource(cleanedEvents); 
-                // สั่งให้ปฏิทินวาดตัวเองใหม่ทันที
                 calendar.render(); 
             } else if (typeof renderCalendar === "function") {
-                // ถ้าคุณสร้างฟังก์ชันแยกไว้ ให้ส่งเข้าฟังก์ชันเดิม
                 renderCalendar(cleanedEvents);
-            } catch (error) {
-              console.error("❌ พังตอนรับข้อมูลมาวาดปฏิทิน:", error);
-              loadLocalEvents();
-          } finally {
-            // 💡 บังคับซ่อนข้อความโหลดเสมอเมื่อทำงานเสร็จ (ไม่ว่าจะดึงข้อมูลสำเร็จหรือพัง)
-            
-            // หากระบบเดิมมีฟังก์ชันปิดหน้าโหลด เช่น hideLoading(); หรือ toggleLoading(false); ให้เอาคอมเมนต์ออกแล้วเรียกใช้ตรงนี้ได้เลยครับ
-            // hideLoading(); 
-    
-            // ดักซ่อนผ่าน ID (ตรวจสอบ ID ในหน้า HTML ของคุณอีกครั้งให้ตรงกัน)
-            const loadingElement = document.getElementById("loading-overlay"); 
-            if (loadingElement) {
-                loadingElement.style.display = "none";
             }
-            
-            console.log("🏁 ปิดหน้าต่างโหลดเรียบร้อย");
+        } else {
+            console.warn("⚠️ API ส่งค่ากลับมาไม่สำเร็จ หรือรูปแบบข้อมูลผิดพลาด");
+            if (typeof loadLocalEvents === "function") loadLocalEvents();
         }
+
+    } catch (error) {
+        console.error("❌ พังตอนรับข้อมูลมาวาดปฏิทิน:", error);
+        if (typeof loadLocalEvents === "function") loadLocalEvents();
+    } finally {
+        // 💡 ดักซ่อนข้อความโหลด/ปิดม่านบังหน้าจอออกเสมอ
+        if (typeof hideLoading === "function") {
+            hideLoading(); 
+        }
+        
+        const loadingElement = document.getElementById("loading-overlay"); 
+        if (loadingElement) {
+            loadingElement.style.display = "none";
+        }
+        
+        console.log("🏁 ปิดหน้าต่างโหลดเรียบร้อย");
     }
+}
 
 // 🛠️ ฟังก์ชันเสริมสำหรับแปลงข้อความวันเวลาภาษาไทยยัดเข้าปฏิทินในหน้าเว็บ
 function parseThaiDateToISO(thaiStr) {
