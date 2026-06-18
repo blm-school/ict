@@ -1,4 +1,4 @@
-// ==========================================================================
+// ========================================================================== 
 // External Website Calendar JS Engine (API Connected)
 // ==========================================================================
 
@@ -67,23 +67,40 @@ function initApp() {
  * 🌐 GET API: โหลดข้อมูลกิจกรรมทั้งหมดจาก Server
  */
 function loadEventsFromServer() {
-  console.log("📅 [API] เตรียมดึงข้อมูลจาก API...");
+  console.log("🌐 [API] 1. เริ่มกระบวนการดึงข้อมูลจาก API: ", API_URL);
   showLoader(true, 'กำลังโหลดตารางงาน...');
   
   fetch(`${API_URL}?action=getEvents`)
-    .then(response => response.json())
+    .then(response => {
+      console.log("📥 [API] 2. ได้รับการตอบกลับจาก Server, HTTP Status:", response.status);
+      return response.json();
+    })
     .then(result => {
+      console.log("📦 [API] 3. แกะกล่องข้อมูล JSON ที่ได้จาก Server:", result);
       showLoader(false);
+      
       if (result.status === 'success') {
+        console.log(`✅ [API] 4. โหลดข้อมูลสำเร็จ พบกิจกรรมทั้งหมด ${result.data.length} รายการ`);
         events = result.data;
+        
+        // --- ส่วนพิเศษสำหรับ Debug การแปลงวันที่ (เช็ค 3 รายการแรก) ---
+        console.log("🕵️‍♂️ [Debug] ตรวจสอบการอ่านวันที่ (เช็คจาก 3 รายการแรก):");
+        events.slice(0, 3).forEach((evt, idx) => {
+            console.log(`   [รายการที่ ${idx+1}] ID: ${evt.ID} | ชื่อ: ${evt.Title}`);
+            console.log(`     - Start Date (ดิบจากชีต): "${evt['Start Date']}" => แปลงผลลัพธ์ได้:`, parseSheetDate(evt['Start Date']));
+            console.log(`     - End Date (ดิบจากชีต): "${evt['End Date']}" => แปลงผลลัพธ์ได้:`, parseSheetDate(evt['End Date']));
+        });
+        // --------------------------------------------------------
+
         filterEvents();
         showToast('โหลดข้อมูลกิจกรรมเรียบร้อยแล้ว', 'success');
       } else {
+        console.error("❌ [API] Server แจ้งเตือน Error:", result.message);
         throw new Error(result.message);
       }
     })
     .catch(err => {
-      console.error("❌ [API] ล้มเหลว:", err);
+      console.error("🚨 [API] เกิดข้อผิดพลาดร้ายแรงในการเชื่อมต่อ:", err);
       showLoader(false);
       showToast('การเชื่อมต่อล้มเหลว: ' + err.message, 'error');
     });
@@ -185,39 +202,73 @@ function updateAdminActionButtonsVisibility() {
 }
 
 // ==========================================================================
-// Date Utility & Parse Engine
+// Date Utility & Parse Engine (ลบวงเล็บภาษาไทยทิ้งก่อนประมวลผล)
 // ==========================================================================
 function parseSheetDate(dateStr) {
   if (!dateStr) return null;
+  
+  // 1. ลบข้อความในวงเล็บ เช่น (เวลาอินโดจีน) ออก เพื่อไม่ให้เบราว์เซอร์สับสน
+  let cleanStr = String(dateStr).replace(/\(.*?\)/g, '').trim();
+
+  // 2. ลองให้ Javascript ประมวลผลแบบอัตโนมัติ 
+  // (หลังจากตัดวงเล็บทิ้ง จะเหลือแค่ "Thu Jun 18 2026 13:00:00 GMT+0700" ซึ่งอ่านได้ 100%)
+  const autoDate = new Date(cleanStr);
+  if (!isNaN(autoDate.getTime())) {
+      return autoDate;
+  }
+
+  // 3. Fallback เผื่อเจอรูปแบบอื่นๆ (เช่น 18 มิถุนายน 2569)
   try {
-    const parts = dateStr.split(' ');
-    if (parts.length < 2) return null;
-    
-    const datePart = parts[0].replace(',', '');
-    const dateSeparator = datePart.includes('-') ? '-' : (datePart.includes('/') ? '/' : ':');
-    const dateParts = datePart.split(dateSeparator);
-    
-    const timePart = parts[1];
-    const timeParts = timePart.split(':');
-    
-    let year, month, day;
-    
-    if (dateParts[0].length === 4) {
-      year = parseInt(dateParts[0], 10);
-      month = parseInt(dateParts[1], 10) - 1;
-      day = parseInt(dateParts[2], 10);
-    } else {
-      day = parseInt(dateParts[0], 10);
-      month = parseInt(dateParts[1], 10) - 1;
-      year = parseInt(dateParts[2], 10);
+    cleanStr = cleanStr.replace('T', ' ');
+    const parts = cleanStr.split(' ');
+
+    const thaiMonths = ['มกราคม', 'กุมภาพันธ์', 'มีนาคม', 'เมษายน', 'พฤษภาคม', 'มิถุนายน', 'กรกฎาคม', 'สิงหาคม', 'กันยายน', 'ตุลาคม', 'พฤศจิกายน', 'ธันวาคม'];
+    let thaiMonthIndex = -1;
+    for (let i = 0; i < thaiMonths.length; i++) {
+        if (cleanStr.includes(thaiMonths[i])) {
+            thaiMonthIndex = i;
+            break;
+        }
     }
-    
-    const hour = parseInt(timeParts[0], 10) || 0;
-    const minute = parseInt(timeParts[1], 10) || 0;
-    const second = parseInt(timeParts[2], 10) || 0;
-    
-    return new Date(year, month, day, hour, minute, second);
-  } catch (e) { return null; }
+
+    if (thaiMonthIndex !== -1) {
+         let day = parseInt(parts[0], 10);
+         let year = parseInt(parts[2], 10);
+         if (year > 2500) year -= 543; 
+         return new Date(year, thaiMonthIndex, day, 0, 0, 0); 
+    }
+
+    if (parts.length > 0) {
+        const datePart = parts[0];
+        const timePart = parts[1] || '00:00:00';
+        const separator = datePart.includes('-') ? '-' : (datePart.includes('/') ? '/' : null);
+        
+        if (separator) {
+            const dParts = datePart.split(separator);
+            const tParts = timePart.split(':');
+            let year, month, day;
+
+            if (dParts[0].length === 4) { 
+                year = parseInt(dParts[0], 10); month = parseInt(dParts[1], 10) - 1; day = parseInt(dParts[2], 10);
+            } else if (dParts[2].length === 4) { 
+                year = parseInt(dParts[2], 10); let p0 = parseInt(dParts[0], 10); let p1 = parseInt(dParts[1], 10);
+                if (p0 > 12) { day = p0; month = p1 - 1; } else { month = p0 - 1; day = p1; }
+            } else { 
+                day = parseInt(dParts[0], 10); month = parseInt(dParts[1], 10) - 1; year = parseInt(dParts[2], 10);
+            }
+
+            const h = parseInt(tParts[0], 10) || 0;
+            const m = parseInt(tParts[1], 10) || 0;
+            const s = parseInt(tParts[2], 10) || 0;
+
+            return new Date(year, month, day, h, m, s);
+        }
+    }
+  } catch (e) {
+    console.error("Parse Error Date:", dateStr);
+  }
+  
+  return null; 
 }
 
 function formatToSheetDate(date) {
@@ -260,8 +311,13 @@ function getSelectedCategoryFilters() {
 function handleSearchFilter() { filterEvents(); }
 
 function filterEvents() {
+  console.log("🔍 [Filter] เริ่มคัดกรองข้อมูลกิจกรรม...");
+  
   const searchQuery = document.getElementById('search-input').value.toLowerCase().trim();
   const selectedCategories = getSelectedCategoryFilters();
+  
+  console.log(`   - คำค้นหา: "${searchQuery}"`);
+  console.log(`   - หมวดหมู่ที่ติ๊กเลือก:`, selectedCategories);
   
   filteredEvents = events.filter(evt => {
     const matchText = !searchQuery || 
@@ -275,6 +331,7 @@ function filterEvents() {
     return matchText && matchCategory;
   });
   
+  console.log(`✅ [Filter] คัดกรองเสร็จสิ้น: นำไปแสดงผล ${filteredEvents.length} รายการ (จากทั้งหมด ${events.length})`);
   renderCalendar();
 }
 
@@ -304,6 +361,8 @@ function navigateToday() {
 }
 
 function renderCalendar() {
+  console.log(`🎨 [Render] เริ่มวาดตารางปฏิทิน | มุมมอง: ${currentView} | วันอ้างอิง: ${currentDate.toDateString()}`);
+  
   const grid = document.getElementById('calendar-grid');
   grid.innerHTML = '';
   
@@ -326,6 +385,8 @@ function renderCalendar() {
     document.getElementById('sidebar-month-display').innerText = currentMonthName + ' ' + currentYearBE;
     renderWeekView(grid);
   }
+  
+  console.log(`📊 [Dashboard] อัปเดตตัวเลขสถิติด้านล่าง...`);
   updateDashboard();
 }
 
