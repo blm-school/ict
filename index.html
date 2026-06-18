@@ -426,36 +426,59 @@
   /**
    * โหลดข้อมูลกิจกรรมทั้งหมดด้วย Fetch API
    */
-  async function loadEventsFromServer() {
-    console.log("📅 [Server] เตรียมดึงข้อมูลจากฐานข้อมูลปฏิทินงาน...");
-    showLoader(true, 'กำลังดึงตารางกิจกรรมปฏิทิน...');
-    
+// บรรทัดแถวๆ 430+ ใน index.html ของคุณ (ปรับตามโครงสร้างเดิม)
+async function loadEventsFromServer() {
     try {
-      const response = await fetch(`${API_URL}?action=getEvents`);
-      const result = await response.json();
-      
-      if (result.success) {
-        console.log("📅 [Server] เชื่อมต่อดึงตารางสำเร็จ! พบข้อมูลทั้งหมด:", result.data.length, "รายการ");
-        events = result.data;
-        filterEvents();
-        showToast('โหลดข้อมูลกิจกรรมประสานเรียบร้อยแล้ว', 'success');
-      } else {
-        throw new Error(result.message);
-      }
-    } catch (err) {
-      console.error("❌ [API Fetch] ล้มเหลว เปลี่ยนไปเปิดโหมด Local Storage:", err);
-      let localEvents = localStorage.getItem('gas_calendar_events');
-      if (!localEvents) {
-        events = getInitialMockEvents();
-      } else {
-        events = JSON.parse(localEvents);
-      }
-      filterEvents();
-      showToast('⚠️ เปิดใช้งานตารางข้อมูลจำลองแบบโลคอล', 'info');
-    } finally {
-      showLoader(false);
+        console.log("📅 [Front-end] เริ่มต้นเรียก API ไปที่:", API_URL + "?action=getEvents");
+        
+        const response = await fetch(`${API_URL}?action=getEvents`);
+        
+        // 🔍 จุดที่ 1: เช็คสถานะการตอบกลับของ HTTP Response
+        console.log("🌐 [Front-end] สถานะ HTTP Response:", response.status, response.statusText);
+        
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        const result = await response.json();
+        
+        // 🔍 จุดที่ 2: ดูข้อมูลทั้งหมดที่ส่งมาจาก Google Apps Script หลังแปลงเป็น JSON
+        console.log("📦 [Front-end] ข้อมูลดิบที่ได้รับจาก API (Result Object):", result);
+
+        if (result.success && Array.isArray(result.data)) {
+            // 🔍 จุดที่ 3: เช็คจำนวนข้อมูลและโครงสร้างของ Object ตัวแรกในอาเรย์
+            console.log(`✅ [Front-end] ดึงข้อมูลสำเร็จ! พบทั้งหมด ${result.data.length} รายการ`);
+            if (result.data.length > 0) {
+                console.log("👁️ [Front-end] ตัวอย่างโครงสร้างข้อมูลตัวแรก:", result.data[0]);
+                console.log("📌 เช็คด่วน! คีย์ข้อมูลตัวแรก (เช่น ID, Title, Start Date) สะกดตรงกับหัวตารางใน Sheets และโค้ดวาดปฏิทินไหม?");
+            }
+
+            // ตรงนี้เป็นจุดแปลงข้อมูลเข้าสู่ระบบปฏิทิน (ปรับเปลี่ยนตามชื่อตัวแปรปฏิทินของคุณ เช่น calendarData หรือ events)
+            // ตัวอย่าง:
+            // window.calendarEvents = result.data; 
+            
+            // 🔍 จุดที่ 4: ตรวจสอบฟังก์ชันวาดปฏิทินของคุณ (เช่น renderCalendar() หรือ updateCalendar())
+            if (typeof renderCalendar === "function") {
+                console.log("🎨 [Front-end] กำลังเรียกฟังก์ชัน renderCalendar() เพื่อวาดปฏิทิน...");
+                renderCalendar(result.data); // ส่งข้อมูลไปวาด
+            } else if (typeof calendar !== "undefined" && typeof calendar.refetchEvents === "function") {
+                console.log("🎨 [Front-end] กำลังอัปเดตข้อมูลให้ FullCalendar...");
+                // โค้ดสำหรับ FullCalendar (ถ้าคุณใช้)
+            } else {
+                console.warn("⚠️ [Front-end] เตือน: ไม่พบฟังก์ชันสำหรับสั่งวาดปฏิทินให้แสดงผลบนหน้าจอ (เช่น renderCalendar)");
+            }
+
+        } else {
+            console.error("❌ [Front-end] API ส่งค่า success เป็น false หรือ data ไม่ใช่อาเรย์:", result.message);
+            // สลับไปโหลด Local Storage ตามระบบดัก Error ของคุณ
+            loadLocalEvents(); 
+        }
+    } catch (error) {
+        console.error("❌ [Front-end] ฟังก์ชัน loadEventsFromServer พังระหว่างรัน:", error);
+        // สลับไปโหลด Local Storage ตามระบบดัก Error ของคุณ
+        loadLocalEvents(); 
     }
-  }
+}
 
   function showLoader(show, text) {
     const loaderTextValue = text || 'กำลังทำงาน...';
