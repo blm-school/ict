@@ -1,1376 +1,399 @@
 <!DOCTYPE html>
-<html lang="th">
+<html>
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>ระบบปฏิทินกิจกรรม ICT ศูนย์เทคโนโลยีสารสนเทศและการสื่อสารโรงเรียนบางละมุง</title>
-  <link rel="icon" type="image/x-icon" href="https://blm-school.github.io/ict_ict/images/logo_ict.png">
-  
+  <base target="_top">
+  <title>ระบบปฏิทินกิจกรรม (Calendar App)</title>
+  <!-- Google Fonts: Outfit and Inter -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <!-- FontAwesome Icons via CDN -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <!-- CSS -->
+  <link rel="stylesheet" href="https://raw.githubusercontent.com/blm-school/ict/refs/heads/main/style.css">
+  
+  <!-- Flatpickr CSS & Dark Theme เพื่อความกลมกลืนกับธีมเว็บแอป -->
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/themes/dark.css">
+  <!-- Flatpickr JS & โลคอลภาษาไทย -->
+  <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+  <script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/l10n/th.js"></script>
 
-  <style>
-    /* ==========================================================================
-       CSS Styling เบื้องต้น (คุณสามารถปรับแต่งธีมดาร์ก/ไลท์เพิ่มเติมได้ตามต้องการ)
-       ========================================================================== */
-    :root {
-      --color-photo: #e74c3c;
-      --color-video: #3498db;
-      --color-audio-ff: #2ecc71;
-      --color-audio-obj: #f1c40f;
-    }
-    body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #1a1a1a; color: #ffffff; margin: 0; padding: 20px; }
-    .hidden { display: none !important; }
-    
-    /* Loading Overlay */
-    #loading-overlay { position: fixed; top:0; left:0; width:100%; height:100%; background: rgba(0,0,0,0.85); z-index: 9999; display: none; align-items: center; justify-content: center; flex-direction: column; }
-    #loading-overlay.active { display: flex; }
-    .spinner { border: 4px solid rgba(255,255,255,0.1); width: 50px; height: 50px; border-radius: 50%; border-left-color: #3498db; animation: spin 1s linear infinite; }
-    @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-    .loading-text { margin-top: 15px; font-size: 1.1rem; }
-
-    /* Toast Notification */
-    #toast-container { position: fixed; top: 20px; right: 20px; z-index: 9999; }
-    .toast { background: #333; padding: 15px 25px; margin-bottom: 10px; border-radius: 4px; display: flex; align-items: center; box-shadow: 0 4px 6px rgba(0,0,0,0.3); animation: slide-in 0.3s ease forwards; }
-    .toast-success { border-left: 5px solid #2ecc71; }
-    .toast-error { border-left: 5px solid #e74c3c; }
-    .toast-info { border-left: 5px solid #3498db; }
-    .toast-icon { margin-right: 10px; }
-
-    /* Layout & Panels */
-    .app-container { display: flex; gap: 20px; }
-    .sidebar { width: 250px; background: #222; padding: 20px; border-radius: 8px; }
-    .main-content { flex: 1; background: #222; padding: 20px; border-radius: 8px; }
-    
-    /* Calendar Grid */
-    .calendar-header-actions { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
-    .btn { background: #444; color: #fff; border: none; padding: 8px 15px; border-radius: 4px; cursor: pointer; margin-right: 5px; }
-    .btn.active { background: #3498db; }
-    .grid-container { display: grid; grid-template-columns: repeat(7, 1fr); gap: 5px; }
-    .grid-container.week-view { grid-template-columns: repeat(7, 1fr); }
-    .day-cell { background: #2d2d2d; min-height: 100px; padding: 5px; border-radius: 4px; }
-    .day-cell.other-month { opacity: 0.4; }
-    .day-cell.today { border: 2px solid #3498db; }
-    .day-header { display: flex; justify-content: space-between; margin-bottom: 5px; }
-    .day-number { font-weight: bold; }
-    
-    /* Chips */
-    .event-chip { background: #444; font-size: 0.8rem; padding: 3px 6px; margin-bottom: 3px; border-radius: 3px; cursor: pointer; display: flex; align-items: center; gap: 5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-    .chip-photo { border-left: 3px solid var(--color-photo); }
-    .chip-video { border-left: 3px solid var(--color-video); }
-    .chip-audio-ff { border-left: 3px solid var(--color-audio-ff); }
-    .chip-audio-obj { border-left: 3px solid var(--color-audio-obj); }
-    .chip-multi { border-left: 3px solid #9b59b6; }
-    .dot-indicator { width: 6px; height: 6px; border-radius: 50%; display: inline-block; }
-
-    /* Modals */
-    .modal { position: fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.7); z-index: 1000; display:none; align-items:center; justify-content:center; }
-    .modal.active { display: flex; }
-    .modal-content { background: #2d2d2d; padding: 25px; border-radius: 8px; width: 100%; max-width: 500px; box-shadow: 0 5px 15px rgba(0,0,0,0.5); }
-    .form-group { margin-bottom: 15px; }
-    .form-group label { display: block; margin-bottom: 5px; }
-    .form-control { width: 100%; padding: 8px; background: #3c3c3c; border: 1px solid #555; color: #fff; border-radius: 4px; box-sizing: border-box; }
-    
-    /* Upload Dropzone */
-    .dropzone { border: 2px dashed #555; padding: 20px; text-align: center; border-radius: 4px; cursor: pointer; margin-bottom: 10px; }
-    .dropzone.highlight { border-color: #3498db; background: rgba(52, 152, 219, 0.1); }
-    .marked-deleted { text-decoration: line-through; opacity: 0.5; }
-  </style>
 </head>
 <body>
-      <div class="snow-stars-background">
-        <div class="snow-star"></div>
-        <div class="snow-star"></div>
-        <div class="snow-star"></div>
-        <div class="snow-star"></div>
-        <div class="snow-star"></div>
-        <div class="snow-star"></div>
-        <div class="snow-star"></div>
-        <div class="snow-star"></div>
-        <div class="snow-star"></div>
-        <div class="snow-star"></div>
-        <div class="snow-star"></div>
-    </div>
-
-  <script>
-    const API_URL = "https://script.google.com/macros/s/AKfycbzzHcsemx2Ut9970L2SXQU09sAGG9xY-hHk1AwE6xqDnaAHlgIFT2HR_6Moq6gWiBnKJg/exec"; // 👈 นำ URL Web App ที่แอดมินเปิด Public มาใส่แทนที่ตรงนี้
-  </script>
-
-  <div id="loading-overlay" class="active">
-    <div class="spinner"></div>
-    <div class="loading-text">กำลังซิงโครไนซ์ข้อมูลระบบ...</div>
-  </div>
-
-  <div id="toast-container"></div>
-
-  <header style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px; border-bottom:1px solid #333; padding-bottom:15px;">
-    <h2><i class="fa-solid fa-calendar-days"></i> ระบบปฏิทินงานประสานโสตทัศนูปกรณ์</h2>
-    <div style="display:flex; align-items:center; gap:15px;">
-      <div id="admin-status" class="admin-badge admin-badge-guest" style="padding:5px 10px; background:#444; border-radius:20px; font-size:0.9rem;">
-        <span id="admin-status-text">โหมดผู้ใช้งานทั่วไป</span>
-      </div>
-      <button id="admin-action-btn" class="btn" onclick="openAdminModal()"><i class="fa-solid fa-lock"></i> เข้าสู่ระบบ Admin</button>
-    </div>
-  </header>
-
-  <div class="app-container">
+  <div class="app-container">    
+    
+    <!-- ส่วนแผงควบคุมทางซ้าย (Sidebar) -->
     <aside class="sidebar">
-      <div class="form-group">
-        <label><i class="fa-solid fa-magnifying-glass"></i> ค้นหากิจกรรม</label>
-        <input type="text" id="search-input" class="form-control" placeholder="พิมพ์คีย์เวิร์ดแล้วเอนเทอร์..." oninput="handleSearchFilter()">
+      <div class="brand">
+        <div class="logo">
+          <i class="fa-solid fa-calendar-days"></i>
+        </div>
+        <div>
+          <h1>ปฏิทินกิจกรรมหน่วยงาน</h1>
+          <p>ระบบจัดการงานและสื่อโสตฯ</p>
+        </div>
       </div>
       
-      <div class="form-group" style="margin-top:20px;">
-        <label>ฟิลเตอร์แยกหมวดหมู่</label>
-        <div style="margin-top:10px;">
-          <label style="display:flex; align-items:center; gap:8px; margin-bottom:8px; cursor:pointer;">
-            <input type="checkbox" class="category-filter-checkbox" value="ถ่ายภาพ" checked onchange="filterEvents()"> ถ่ายภาพ
-          </label>
-          <label style="display:flex; align-items:center; gap:8px; margin-bottom:8px; cursor:pointer;">
-            <input type="checkbox" class="category-filter-checkbox" value="ถ่ายวิดีโอ" checked onchange="filterEvents()"> ถ่ายวิดีโอ
-          </label>
-          <label style="display:flex; align-items:center; gap:8px; margin-bottom:8px; cursor:pointer;">
-            <input type="checkbox" class="category-filter-checkbox" value="เครื่องเสียง(ห้องเฟื่องฟ้า)" checked onchange="filterEvents()"> เครื่องเสียง(ห้องเฟื่องฟ้า)
-          </label>
-          <label style="display:flex; align-items:center; gap:8px; margin-bottom:8px; cursor:pointer;">
-            <input type="checkbox" class="category-filter-checkbox" value="เครื่องเสียง(อบจ)" checked onchange="filterEvents()"> เครื่องเสียง(อบจ)
-          </label>
+      <!-- บล็อกแสดงสถานะ Admin -->
+      <div class="admin-badge-container">
+        <div id="admin-status" class="admin-badge admin-badge-guest">
+          <i class="fa-solid fa-circle-user"></i>
+          <span id="admin-status-text">โหมดผู้ใช้งานทั่วไป</span>
+        </div>
+        <button id="admin-action-btn" class="btn btn-secondary btn-sm ripple" onclick="openAdminModal()">
+          <i class="fa-solid fa-lock"></i> เข้าสู่ระบบ Admin
+        </button>
+      </div>
+
+      <!-- ปุ่มหลักเพิ่มกิจกรรม -->
+      <button class="btn btn-primary btn-block btn-large ripple" onclick="openAddEventModal()">
+        <i class="fa-solid fa-plus"></i> เพิ่มกิจกรรมใหม่
+      </button>
+
+      <!-- ส่วนควบคุมการนำทางวันที่ในปฏิทิน -->
+      <div class="sidebar-section">
+        <h3><i class="fa-solid fa-compass"></i> นำทาง</h3>
+        <div class="navigation-controls">
+          <button class="btn btn-icon ripple" onclick="navigateCalendar(-1)" title="ก่อนหน้า">
+            <i class="fa-solid fa-chevron-left"></i>
+          </button>
+          <button class="btn btn-text ripple" onclick="navigateToday()">วันนี้</button>
+          <button class="btn btn-icon ripple" onclick="navigateCalendar(1)" title="ถัดไป">
+            <i class="fa-solid fa-chevron-right"></i>
+          </button>
+        </div>
+        <div class="current-view-indicator" id="sidebar-month-display">...</div>
+      </div>
+
+      <!-- ช่องค้นหาข้อมูล -->
+      <div class="sidebar-section">
+        <h3><i class="fa-solid fa-magnifying-glass"></i> ค้นหากิจกรรม</h3>
+        <div class="search-box">
+          <input type="text" id="search-input" placeholder="พิมพ์ชื่อกิจกรรม หรือผู้จัด..." oninput="handleSearchFilter()">
+          <i class="fa-solid fa-magnifying-glass search-icon"></i>
         </div>
       </div>
 
-      <div style="margin-top:30px; text-align:center;">
-        <span id="sidebar-month-display" style="font-weight:bold; font-size:1.1rem; display:block; margin-bottom:10px;">-</span>
-        <button class="btn" style="width:100%; background:#2ecc71;" onclick="openAddEventModal()"><i class="fa-solid fa-plus"></i> เพิ่มกิจกรรมใหม่</button>
+      <!-- แผงเลือกตัวกรองหมวดหมู่กิจกรรม -->
+      <div class="sidebar-section">
+        <h3><i class="fa-solid fa-tags"></i> กรองประเภทงาน</h3>
+        <div class="filter-list">
+          <label class="filter-item">
+            <input type="checkbox" class="category-filter-checkbox" value="ถ่ายภาพ" checked onchange="filterEvents()">
+            <span class="category-indicator cat-photo"></span>
+            <span>ถ่ายภาพ</span>
+          </label>
+          <label class="filter-item">
+            <input type="checkbox" class="category-filter-checkbox" value="ถ่ายวิดีโอ" checked onchange="filterEvents()">
+            <span class="category-indicator cat-video"></span>
+            <span>ถ่ายวิดีโอ</span>
+          </label>
+          <label class="filter-item">
+            <input type="checkbox" class="category-filter-checkbox" value="เครื่องเสียง(ห้องเฟื่องฟ้า)" checked onchange="filterEvents()">
+            <span class="category-indicator cat-audio-ff"></span>
+            <span>เครื่องเสียง(ห้องเฟื่องฟ้า)</span>
+          </label>
+          <label class="filter-item">
+            <input type="checkbox" class="category-filter-checkbox" value="เครื่องเสียง(อบจ)" checked onchange="filterEvents()">
+            <span class="category-indicator cat-audio-obj"></span>
+            <span>เครื่องเสียง(อบจ)</span>
+          </label>
+        </div>
+      </div>
+      
+      <div class="sidebar-footer">
+        <p>&copy; 2026 ระบบปฏิทินงานหน่วยงาน</p>
+        <p>พัฒนาผ่าน Google Apps Script & Sheets</p>
       </div>
     </aside>
 
+    <!-- ส่วนเนื้อหาปฏิทินหลัก (Main Workspace) -->
     <main class="main-content">
-      <div class="calendar-header-actions">
-        <div>
-          <button class="btn" onclick="navigateCalendar(-1)"><i class="fa-solid fa-chevron-left"></i> ก่อนหน้า</button>
-          <button class="btn" onclick="navigateToday()">วันนี้</button>
-          <button class="btn" onclick="navigateCalendar(1)">ถัดไป <i class="fa-solid fa-chevron-right"></i></button>
+      <header class="calendar-header">
+        <div class="title-section">
+          <h2 id="calendar-title-display">...</h2>
         </div>
-        <h3 id="calendar-title-display" style="margin:0;">-</h3>
-        <div>
-          <button id="view-month-btn" class="btn active" onclick="switchView('month')">รายเดือน</button>
-          <button id="view-week-btn" class="btn" onclick="switchView('week')">รายสัปดาห์</button>
+        <div class="view-switchers">
+          <button id="view-month-btn" class="btn btn-view active ripple" onclick="switchView('month')">
+            <i class="fa-solid fa-calendar-days"></i> รายเดือน
+          </button>
+          <button id="view-week-btn" class="btn btn-view ripple" onclick="switchView('week')">
+            <i class="fa-solid fa-calendar-week"></i> รายสัปดาห์
+          </button>
         </div>
-      </div>
-
-      <div id="calendar-grid" class="grid-container"></div>
-    </main>
-  </div>
-
-  <div id="detail-modal" class="modal">
-    <div class="modal-content">
-      <h3 id="detail-title" style="margin-top:0; color:#3498db;">-</h3>
-      <p><strong><i class="fa-solid fa-clock"></i> เริ่มต้น:</strong> <span id="detail-start">-</span></p>
-      <p><strong><i class="fa-solid fa-clock"></i> สิ้นสุด:</strong> <span id="detail-end">-</span></p>
-      <p><strong><i class="fa-solid fa-layer-group"></i> หมวดหมู่:</strong> <span id="detail-categories"></span></p>
-      <p><strong><i class="fa-solid fa-align-left"></i> รายละเอียด:</strong></p>
-      <div id="detail-desc" style="background:#222; padding:10px; border-radius:4px; min-height:60px; margin-bottom:15px; white-space:pre-line;">-</div>
+      </header>      
       
-      <div id="detail-attachment-section" class="hidden" style="border-top:1px solid #444; padding-top:15px; margin-bottom:15px;">
-        <label><strong><i class="fa-solid fa-paperclip"></i> เอกสารแนบระบบ:</strong></label>
-        <div id="detail-file-preview" style="margin-top:10px; text-align:center;"></div>
-      </div>
+      <div class="calendar-viewport">
 
-      <p style="font-size:0.8rem; color:#777;">ID: <span id="detail-id">-</span></p>
-
-      <div style="display:flex; justify-content:space-between; margin-top:20px; border-top:1px solid #444; padding-top:15px;">
-        <div>
-          <button id="admin-delete-btn" class="btn hidden" style="background:#e74c3c;" onclick="triggerDeleteEvent()"><i class="fa-solid fa-trash"></i> ลบ</button>
-          <button id="admin-edit-btn" class="btn hidden" style="background:#f1c40f; color:#000;" onclick="triggerEditEvent()"><i class="fa-solid fa-pen-to-square"></i> แก้ไข</button>
-        </div>
-        <button class="btn" onclick="closeDetailModal()">ปิดหน้าต่าง</button>
-      </div>
-    </div>
-  </div>
-
-  <div id="admin-modal" class="modal">
-    <div class="modal-content" style="max-width:350px;">
-      <h3 style="margin-top:0;"><i class="fa-solid fa-shield"></i> ยืนยันสิทธิ์แอดมิน</h3>
-      <div class="form-group">
-        <label>รหัสผ่านผู้ดูแลระบบ</label>
-        <input type="password" id="admin-password-input" class="form-control" placeholder="กรอกรหัสผ่านเพื่อจัดการข้อมูล">
-        <span id="admin-login-error" class="hidden" style="color:#e74c3c; font-size:0.85rem; margin-top:5px; display:block;">รหัสผ่านไม่ถูกต้อง กรุณาลองใหม่</span>
-      </div>
-      <div style="text-align:right; margin-top:20px;">
-        <button class="btn" style="background:#555;" onclick="closeAdminModal()">ยกเลิก</button>
-        <button class="btn" style="background:#3498db;" onclick="submitAdminPassword()">เข้าสู่ระบบ</button>
-      </div>
-    </div>
-  </div>
-
-  <div id="form-modal" class="modal">
-    <div class="modal-content" style="max-width:550px;">
-      <h3 id="form-title" style="margin-top:0;">เพิ่มกิจกรรมใหม่</h3>
-      <form id="calendar-event-form" onsubmit="handleFormSubmit(e)">
-        <input type="hidden" id="form-event-id">
-        
-        <div class="form-group">
-          <label>หัวข้อกิจกรรม/ชื่องานจอง <span style="color:#e74c3c;">*</span></label>
-          <input type="text" id="form-title-input" class="form-control" required placeholder="ระบุชื่องานประสาน เช่น ถ่ายภาพประชุมสภา">
-        </div>
-
-        <div class="form-group">
-          <label>เลือกหมวดหมู่งาน (เลือกได้อย่างน้อย 1 รายการ) <span style="color:#e74c3c;">*</span></label>
-          <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-top:5px;">
-            <label><input type="checkbox" class="form-category-checkbox" value="ถ่ายภาพ"> ถ่ายภาพ</label>
-            <label><input type="checkbox" class="form-category-checkbox" value="ถ่ายวิดีโอ"> ถ่ายวิดีโอ</label>
-            <label><input type="checkbox" class="form-category-checkbox" value="เครื่องเสียง(ห้องเฟื่องฟ้า)"> เครื่องเสียง(ห้องเฟื่องฟ้า)</label>
-            <label><input type="checkbox" class="form-category-checkbox" value="เครื่องเสียง(อบจ)"> เครื่องเสียง(อบจ)</label>
+        <!-- ==========================================
+             แดชบอร์ดสรุปงานด้านล่าง (Dashboard Section)
+             ========================================== -->
+        <section class="dashboard-container">
+          <div class="dashboard-header">
+            <h3><i class="fa-solid fa-chart-simple"></i> แดชบอร์ดสรุปกิจกรรม</h3>
           </div>
-          <span id="form-category-error" class="hidden" style="color:#e74c3c; font-size:0.85rem; margin-top:5px; display:block;">กรุณาเลือกหมวดหมู่อย่างน้อย 1 ประเภท</span>
-        </div>
-
-        <div class="form-group">
-          <label>วันเวลาเริ่มต้นกิจกรรม <span style="color:#e74c3c;">*</span></label>
-          <input type="text" id="form-start-input" class="form-control" required>
-        </div>
-
-        <div class="form-group">
-          <label>วันเวลาสิ้นสุดกิจกรรม <span style="color:#e74c3c;">*</span></label>
-          <input type="text" id="form-end-input" class="form-control" required>
-        </div>
-
-        <div class="form-group">
-          <label>รายละเอียดเพิ่มเติม</label>
-          <textarea id="form-desc-input" class="form-control" rows="3" placeholder="ระบุสถานที่ จำนวนอุปกรณ์ หรือรายละเอียดการประสานงานอื่นๆ..."></textarea>
-        </div>
-
-        <div class="form-group">
-          <label>เอกสารหรือภาพประกอบประกอบการจอง (ไม่เกิน 10MB)</label>
           
-          <div id="edit-attachment-status" class="hidden" style="background:#444; padding:8px; margin-bottom:8px; border-radius:4px; display:flex; justify-content:between; align-items:center;">
-            <span style="font-size:0.85rem;"><i class="fa-solid fa-file-shield"></i> ตรวจพบไฟล์แนบเดิมในฐานข้อมูล</span>
-            <div>
-              <a id="edit-attachment-link" href="#" target="_blank" class="btn" style="padding:2px 8px; font-size:0.8rem; background:#3498db;">เปิดดู</a>
-              <button type="button" class="btn" style="padding:2px 8px; font-size:0.8rem; background:#e74c3c;" onclick="markAttachmentForDeletion()">ลบออก</button>
+          <div class="stats-grid">
+            <!-- การ์ด 1: สรุปงานทั้งหมดในเดือนนี้ -->
+            <div class="stat-card">
+              <div class="stat-icon icon-total"><i class="fa-solid fa-calendar-check"></i></div>
+              <div class="stat-info">
+                <span class="stat-label">กิจกรรมทั้งหมดในเดือนนี้</span>
+                <span id="stat-month-total" class="stat-value">0</span>
+              </div>
+            </div>
+            
+            <!-- การ์ด 2: สรุปงานเฉพาะวันนี้ -->
+            <div class="stat-card">
+              <div class="stat-icon icon-today"><i class="fa-solid fa-hourglass-half"></i></div>
+              <div class="stat-info">
+                <span class="stat-label">กิจกรรมเฉพาะวันนี้</span>
+                <span id="stat-today-total" class="stat-value">0</span>
+              </div>
+            </div>
+            
+            <!-- การ์ด 3: สรุปแยกรายประเภทประจำเดือนนี้ -->
+            <div class="stat-card stat-card-wide">
+              <div class="stat-label-categories">ประเภทกิจกรรมในเดือนนี้</div>
+              <div class="category-breakdown">
+                <div class="cat-progress-item">
+                  <span class="cat-name"><span class="cat-dot cat-photo"></span>ถ่ายภาพ</span>
+                  <span id="stat-cat-photo" class="cat-count">0</span>
+                </div>
+                <div class="cat-progress-item">
+                  <span class="cat-name"><span class="cat-dot cat-video"></span>ถ่ายวิดีโอ</span>
+                  <span id="stat-cat-video" class="cat-count">0</span>
+                </div>
+                <div class="cat-progress-item">
+                  <span class="cat-name"><span class="cat-dot cat-audio-ff"></span>เครื่องเสียง (เฟื่องฟ้า)</span>
+                  <span id="stat-cat-audio-ff" class="cat-count">0</span>
+                </div>
+                <div class="cat-progress-item">
+                  <span class="cat-name"><span class="cat-dot cat-audio-obj"></span>เครื่องเสียง (อบจ)</span>
+                  <span id="stat-cat-audio-obj" class="cat-count">0</span>
+                </div>
+              </div>
             </div>
           </div>
+          
+          <!-- บล็อกงานที่กำลังจะมาถึงเร็ว ๆ นี้ -->
+          <div class="upcoming-section">
+            <h4><i class="fa-solid fa-clock-rotate-left"></i> กิจกรรมประสานที่กำลังจะมาถึงเร็ว ๆ นี้</h4>
+            <div id="upcoming-list" class="upcoming-list-grid">
+              <div class="upcoming-empty">ไม่มีกิจกรรมที่กำลังจะมาถึงเร็ว ๆ นี้</div>
+            </div>
+          </div>
+        </section>
 
-          <div id="upload-dropzone" class="dropzone" onclick="document.getElementById('form-file-input').click()">
-            <div class="dropzone-prompt">
-              <i class="fa-solid fa-cloud-arrow-up" style="font-size:2rem; margin-bottom:5px; color:#aaa;"></i>
-              <p style="margin:5px 0; font-size:0.9rem;">คลิกที่นี่ หรือ ลากไฟล์มาวางเพื่ออัปโหลด</p>
-            </div>
-            <div id="selected-file-display" class="hidden" style="color:#2ecc71;">
-              <i class="fa-solid fa-circle-check"></i> <span id="selected-file-name">-</span> 
-              (<span id="selected-file-size">-</span>)
-              <button type="button" class="btn" style="padding:2px 6px; font-size:0.75rem; background:#777; margin-left:10px;" onclick="event.stopPropagation(); clearFileSelection();">ลบออก</button>
-            </div>
-          </div>
-          <input type="file" id="form-file-input" class="hidden" onchange="handleFileSelection(event)">
+        <br><hr><br>
+        <!-- แถวแสดงวันจันทร์ - อาทิตย์ -->
+        <div class="weekday-header-grid">
+          <div>อาทิตย์</div>
+          <div>จันทร์</div>
+          <div>อังคาร</div>
+          <div>พุธ</div>
+          <div>พฤหัสบดี</div>
+          <div>ศุกร์</div>
+          <div>เสาร์</div>
         </div>
+        <!-- ตารางแสดงวันและชิปกิจกรรม -->
+        <div id="calendar-grid" class="calendar-grid-days"></div>        
+      </div>
+    </main>
+  </div>  
 
-        <div style="text-align:right; margin-top:25px; border-top:1px solid #444; padding-top:15px;">
-          <button type="button" class="btn" style="background:#555;" onclick="closeFormModal()">ยกเลิก</button>
-          <button type="submit" class="btn" style="background:#2ecc71;">บันทึกข้อมูลกิจกรรม</button>
+  <!-- หน้าต่างโหลดระบบข้อมูล (Loading Overlay) -->
+  <div id="loading-overlay" class="overlay active">
+    <div class="spinner-container">
+      <div class="spinner"></div>
+      <p class="loading-text">กำลังซิงโครไนซ์ข้อมูลระบบ...</p>
+    </div>
+  </div>
+
+  <!-- หน้าต่าง 1: เข้าสู่ระบบ Admin -->
+  <div id="admin-modal" class="modal-overlay">
+    <div class="modal-card modal-card-sm animate-scale">
+      <div class="modal-header">
+        <h2><i class="fa-solid fa-shield-halved"></i> เข้าสู่ระบบผู้ดูแลระบบ</h2>
+        <button class="modal-close" type="button" onclick="closeAdminModal()">&times;</button>
+      </div>
+      <form id="admin-login-form" onsubmit="event.preventDefault(); submitAdminPassword();">
+        <div class="modal-body">
+          <p class="modal-sub">กรุณากรอกรหัสผ่านเพื่อรับสิทธิ์ในการเพิ่ม ลบ หรือแก้ไขข้อมูลกิจกรรม</p>
+          <div class="form-group">
+            <label for="admin-password-input">รหัสผ่าน (Password)</label>
+            <input type="password" id="admin-password-input" class="form-control" placeholder="กรอกรหัสผ่าน..." required>
+          </div>
+          <div id="admin-login-error" class="error-msg hidden">
+            <i class="fa-solid fa-triangle-exclamation"></i> รหัสผ่านผู้ดูแลระบบไม่ถูกต้อง
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-text ripple" onclick="closeAdminModal()">ยกเลิก</button>
+          <button type="submit" class="btn btn-primary ripple">ยืนยัน</button>
         </div>
       </form>
     </div>
   </div>
 
-  <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
-  <script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/l10n/th.js"></script>
-
-  <script>
-  // Global Application State
-  let currentDate = new Date();
-  let currentView = 'month'; // 'month' or 'week'
-  let events = [];
-  let filteredEvents = [];
-  let isAdmin = false;
-  let adminPassword = '';
-  let selectedEvent = null;
-
-  // ตัวแปรเก็บ Instance ปฏิทิน Flatpickr สำหรับฟอร์มควบคุม
-  let startPicker = null;
-  let endPicker = null;
-
-  // File Upload State
-  let selectedFile = null;
-  let deleteExistingAttachment = false;
-
-  // ค้นหาสิทธิ์สภาพแวดล้อม: ตรวจดูว่ารันบนเว็บแอป GAS โดยตรง หรือดึงข้อมูลข้ามโดเมน (API_URL)
-  const isGasEnvironment = (typeof google !== 'undefined' && google.script && google.script.run);
-
-  document.addEventListener('DOMContentLoaded', function() {
-    // ผูก Event Submit เข้ากับฟอร์มเพื่อแก้ไขปัญหา e.preventDefault() ปลายทางพัง
-    const eventForm = document.getElementById('calendar-event-form');
-    if(eventForm) {
-      eventForm.addEventListener('submit', handleFormSubmit);
-    }
-    initApp();
-  });
-
-  /**
-   * ตั้งค่าเริ่มต้นแอป ซิงค์ระบบตรวจสอบ Admin และโหลดปฏิทิน (พร้อมตั้งค่า Flatpickr ปี พ.ศ.)
-   */
-  function initApp() {
-    console.log("🚀 [System] เริ่มต้นระบบปฏิทินงานประสาน...");
-    showLoader(true, 'กำลังโหลดซิงโครไนซ์ข้อมูลกิจกรรม...');
-    
-    // ตั้งค่าออปชันปฏิทินภาษาไทย และคำนวณปี พ.ศ. (+543) แสดงผลบนหน้าจอ
-    const flatpickrConfig = {
-      enableTime: true,
-      dateFormat: "Y-m-d H:i:S", // บันทึกและส่งค่าข้อมูลแบบ ค.ศ. ไปยังเซิร์ฟเวอร์หลังบ้าน
-      altInput: true,
-      altInputClass: "form-control", // สืบทอดสไตล์กล่องดาร์กของแอป
-      locale: "th", // แสดงปฏิทินเป็นภาษาไทย
-      time_24hr: true,
-      formatDate: function(date, formatStr, locale) {
-        // ปรับแต่งการแสดงผลที่ผู้ใช้มองเห็นให้เป็น วัน เดือน ปี พ.ศ.
-        const day = date.getDate();
-        const month = THAI_MONTHS_FULL[date.getMonth()];
-        const year = date.getFullYear() + 543; // แปลงปี ค.ศ. -> พ.ศ.
-        const hours = String(date.getHours()).padStart(2, '0');
-        const minutes = String(date.getMinutes()).padStart(2, '0');
-        return day + ' ' + month + ' ' + year + ' เวลา ' + hours + ':' + minutes + ' น.';
-      }
-    };
-
-    // ผูกตัวคอนโทรลเข้ากับช่องอินพุตในแบบฟอร์ม
-    startPicker = flatpickr("#form-start-input", flatpickrConfig);
-    endPicker = flatpickr("#form-end-input", flatpickrConfig);
-    
-    // 🔒 ปรับระบบตรวจสอบสิทธิ์แอดมินอัตโนมัติผ่าน Fetch API
-    console.log("🔒 [Admin] ตรวจสอบสถานะการเข้าสู่ระบบแบบอัตโนมัติ...");
-    
-    // โหลดพาสเวิร์ดดั้งเดิมใน LocalStorage หากมีอยู่
-    const savedPwd = localStorage.getItem('gas_calendar_admin_pwd') || '';
-    if (savedPwd) {
-      window.currentAdminPassword = savedPwd;
-    }
-
-    // เรียกใช้ฟังก์ชันตรวจสอบสิทธิ์ไปยังเซิร์ฟเวอร์ API
-    fetch(`${API_URL}?action=getAdminStatus`)
-      .then(response => response.json())
-      .then(result => {
-        console.log("🔒 [Admin] ตรวจสอบสถานะผู้ดูแลอัตโนมัติเสร็จสิ้น =", result.success);
-        if (result.success === true) {
-          setAdminState(true, savedPwd);
-        } else {
-          // หากฝั่ง Local เคยเปิดค้างไว้ให้จำลองต่อตามเดิม
-          const localAdmin = localStorage.getItem('gas_calendar_admin') === 'true';
-          if (localAdmin) {
-            setAdminState(true, savedPwd);
-          }
-        }
-      })
-      .catch(err => {
-        console.warn("⚠️ ไม่สามารถดึง Session อัตโนมัติจาก API (ทำการโหลดสิทธิ์แบบ LocalStorage)");
-        const localAdmin = localStorage.getItem('gas_calendar_admin') === 'true';
-        if (localAdmin) setAdminState(true, savedPwd);
-      });
-    
-    loadEventsFromServer();
-    setupDragAndDrop();
-  }
-
-  /**
-   * ดึงข้อมูลกิจกรรมจำลอง (สำหรับรันโหมด Local Preview บนเครื่องทดสอบแบบออฟไลน์)
-   */
-  function getInitialMockEvents() {
-    const today = new Date();
-    
-    const formatDateOffset = (offsetDays, hoursStr) => {
-      const d = new Date(today);
-      d.setDate(today.getDate() + offsetDays);
-      const day = String(d.getDate()).padStart(2, '0');
-      const month = String(d.getMonth() + 1).padStart(2, '0');
-      const year = d.getFullYear();
-      return year + '-' + month + '-' + day + ' ' + hoursStr;
-    };
-    
-    const mockList = [
-      {
-        ID: "mock-id-1",
-        Title: "ถ่ายภาพกิจกรรมเปิดตัวโครงการเทศบาล อบจ.",
-        "Start Date": formatDateOffset(-1, "09:00:00"),
-        "End Date": formatDateOffset(-1, "12:00:00"),
-        Categories: "ถ่ายภาพ",
-        Description: "จัดเก็บภาพบรรยากาศเปิดงาน ณ หอประชุมใหญ่ ประสานงานฝ่ายไอที",
-        "Attachment URL": "",
-        "Attachment ID": ""
-      },
-      {
-        ID: "mock-id-2",
-        Title: "บันทึกเทปสตรีมสดการประชุมสภา",
-        "Start Date": formatDateOffset(0, "10:00:00"),
-        "End Date": formatDateOffset(0, "15:30:00"),
-        Categories: "ถ่ายภาพ, ถ่ายวิดีโอ",
-        Description: "เตรียมกล้อง 2 ตัว บันทึกวิดีโอตลอดการสัมมนาวิชาการ อบจ.",
-        "Attachment URL": "",
-        "Attachment ID": ""
-      },
-      {
-        ID: "mock-id-3",
-        Title: "จัดเซ็ตอัพเครื่องเสียงห้องประชุมใหญ่",
-        "Start Date": formatDateOffset(1, "13:00:00"),
-        "End Date": formatDateOffset(1, "16:30:00"),
-        Categories: "เครื่องเสียง(ห้องเฟื่องฟ้า)",
-        Description: "เตรียมไมค์ลอย 4 ตัว ตรวจสอบลำโพงคู่หน้า",
-        "Attachment URL": "",
-        "Attachment ID": ""
-      }
-    ];
-    
-    localStorage.setItem('gas_calendar_events', JSON.stringify(mockList));
-    return mockList;
-  }
-
-  /**
- * โหลดข้อมูลกิจกรรมทั้งหมดด้วย Fetch API
- */
-/**
- * โหลดข้อมูลกิจกรรมทั้งหมดด้วย Fetch API (เวอร์ชันแก้ไขโครงสร้างพัง)
- */
-async function loadEventsFromServer() {
-    try {
-        console.log("📅 [Front-end] กำลังเรียกข้อมูลจาก Google Sheets...");
+  <!-- หน้าต่าง 2: รายละเอียดกิจกรรมกิจกรรม (Detail Modal) -->
+  <div id="detail-modal" class="modal-overlay">
+    <div class="modal-card animate-scale">
+      <div class="modal-header">
+        <h2 id="detail-title">หัวข้อกิจกรรม</h2>
+        <button class="modal-close" type="button" onclick="closeDetailModal()">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="detail-section">
+          <div id="detail-categories" class="detail-badge-list"></div>
+        </div>
         
-        const response = await fetch(`${API_URL}?action=getEvents`);
-        if (!response.ok) throw new Error("การเชื่อมต่อเซิร์ฟเวอร์ล้มเหลว");
+        <div class="detail-section detail-time-box">
+          <div class="time-item">
+            <span class="time-label"><i class="fa-regular fa-calendar-check text-primary"></i> วันเวลาเริ่มต้น</span>
+            <span id="detail-start" class="time-value">-</span>
+          </div>
+          <div class="time-item">
+            <span class="time-label"><i class="fa-regular fa-calendar-xmark text-danger"></i> วันเวลาสิ้นสุด</span>
+            <span id="detail-end" class="time-value">-</span>
+          </div>
+        </div>
 
-        const result = await response.json();
+        <div class="detail-section">
+          <h3><i class="fa-solid fa-align-left text-muted"></i> รายละเอียด / ผู้ประสานงาน</h3>
+          <p id="detail-desc" class="detail-description-text">ไม่มีข้อมูลรายละเอียด</p>
+        </div>
+
+        <div class="detail-section" id="detail-attachment-section">
+          <h3><i class="fa-solid fa-paperclip text-muted"></i> ไฟล์เอกสารหรือภาพประกอบแนบ</h3>
+          <div id="detail-file-preview" class="file-preview-card"></div>
+        </div>
         
-        if (result.success && Array.isArray(result.data)) {
-            console.log("📦 ข้อมูลดิบที่ส่งมาจาก GAS:", result.data);
+        <div class="detail-meta">
+          <small class="text-muted">รหัสกิจกรรม: <span id="detail-id"></span></small>
+        </div>
+      </div>
+      
+      <div class="modal-footer">
+        <div class="admin-actions">
+          <button id="admin-delete-btn" class="btn btn-danger btn-outline ripple" onclick="triggerDeleteEvent()"><i class="fa-solid fa-trash-can"></i> ลบกิจกรรม</button>
+          <button id="admin-edit-btn" class="btn btn-warning ripple" onclick="triggerEditEvent()"><i class="fa-solid fa-pen-to-square"></i> แก้ไขกิจกรรม</button>
+        </div>
+        <button type="button" class="btn btn-secondary ripple" onclick="closeDetailModal()">ปิดหน้าต่าง</button>
+      </div>
+    </div>
+  </div>
 
-            const cleanedEvents = [];
-
-            // 💡 เริ่มลูปแปลงข้อมูล (ข้าม Object แรกที่เป็นหัวตารางไปเลย)
-            for (let i = 0; i < result.data.length; i++) {
-                const rawEvent = result.data[i];
-                
-                // ข้ามแถวที่เป็นหัวตารางซ้ำซ้อนออกไป
-                if (rawEvent["ID"] === "ID" || rawEvent["Title"] === "Title") continue;
-
-                // 💡 แปลงวันที่ภาษาไทย "18 มิถุนายน 2569 เวลา 09:00 น." ให้เป็นมาตรฐาน ค.ศ. (2026-06-18T09:00:00)
-                const standardStart = parseThaiDateToISO(rawEvent["Start Date"]);
-                const standardEnd = parseThaiDateToISO(rawEvent["End Date"]);
-
-                // จัดรูปแบบส่งไปทุกระบบคีย์ (ป้องกันปัญหาอ่านชื่อคีย์ไม่เจอ)
-                cleanedEvents.push({
-                    id: rawEvent["ID"] || '',
-                    title: rawEvent["Categories"] || 'กิจกรรมไม่มีชื่อ', 
-                    start: standardStart,
-                    end: standardEnd,
-                    description: rawEvent["Description"] || '',
-                
-                    // 💡 คีย์ตัวพิมพ์ใหญ่เดิม (เผื่อระบบปฏิทินเดิมของคุณกวาดหาคีย์นี้)
-                    ID: rawEvent["ID"] || '',
-                    Title: rawEvent["Categories"] || 'กิจกรรมไม่มีชื่อ',
-                    "Start Date": rawEvent["Start Date"], 
-                    "End Date": rawEvent["End Date"],
-                
-                    // 💡 ส่งแบบ พ.ศ. ตรงๆ (ปี 2569 เผื่อหน้าเว็บตั้งค่าแสดงปีไทยแล้วเอ๋อ ค.ศ.)
-                    start_th: `2569-06-18T09:00:00`,
-                    end_th: `2569-06-18T10:00:00`
-                });
-            }
-
-            console.log(`✅ [Front-end] แปลงข้อมูลไทยเป็นสากลสำเร็จ! พร้อมวาด ${cleanedEvents.length} รายการ`);
-            console.log("✨ ข้อมูลคลีนๆ ที่จะป้อนเข้าปฏิทิน:", cleanedEvents);
-
-            // ส่งข้อมูลที่คลีนแล้วเข้าตัวแปรปฏิทินของหน้าเว็บ
-            window.calendarEvents = cleanedEvents; 
-
-            // 🔄 สั่งวาดปฏิทินลงหน้าจอทันที
-            if (typeof calendar !== "undefined") {
-                console.log("🔄 กำลังอัปเดตข้อมูลเข้า FullCalendar...");
-                calendar.removeAllEvents(); 
-                calendar.addEventSource(cleanedEvents); 
-                calendar.render(); 
-            } else if (typeof renderCalendar === "function") {
-                renderCalendar(cleanedEvents);
-            }
-        } else {
-            console.warn("⚠️ API ส่งค่ากลับมาไม่สำเร็จ หรือรูปแบบข้อมูลผิดพลาด");
-            if (typeof loadLocalEvents === "function") loadLocalEvents();
-        }
-
-    } catch (error) {
-        console.error("❌ พังตอนรับข้อมูลมาวาดปฏิทิน:", error);
-        if (typeof loadLocalEvents === "function") loadLocalEvents();
-    } finally {
-        // 💡 ดักซ่อนข้อความโหลด/ปิดม่านบังหน้าจอออกเสมอ
-        if (typeof hideLoading === "function") {
-            hideLoading(); 
-        }
+  <!-- หน้าต่าง 3: แบบฟอร์มเพิ่ม/แก้ไขกิจกรรม (ปรับปรุงชนิด Input เป็น text เพื่อให้ Flatpickr ควบคุมอย่างสมบูรณ์) -->
+  <div id="form-modal" class="modal-overlay">
+    <div class="modal-card modal-card-lg animate-scale">
+      <div class="modal-header">
+        <h2 id="form-title">เพิ่มกิจกรรมงานปฏิทิน</h2>
+        <button class="modal-close" type="button" onclick="closeFormModal()">&times;</button>
+      </div>
+      <form id="event-form" onsubmit="handleFormSubmit(event)">
+        <input type="hidden" id="form-event-id">
         
-        const loadingElement = document.getElementById("loading-overlay"); 
-        if (loadingElement) {
-            loadingElement.style.display = "none";
-        }
+        <div class="modal-body">
+          <div class="form-group">
+            <label for="form-title-input">หัวข้อกิจกรรม / ชื่องานประสาน <span class="required">*</span></label>
+            <input type="text" id="form-title-input" class="form-control" placeholder="ระบุชื่องานหรือหัวข้อ..." required>
+          </div>
+
+          <div class="form-group">
+            <label>ประเภทงานที่ขอรับบริการ (เลือกได้หลายข้อ) <span class="required">*</span></label>
+            <div class="category-checkboxes-grid">
+              <label class="checkbox-badge-item">
+                <input type="checkbox" name="form-categories" value="ถ่ายภาพ" class="form-category-checkbox">
+                <span class="checkbox-badge-label cat-photo-border"><i class="fa-solid fa-camera"></i> ถ่ายภาพ</span>
+              </label>
+              <label class="checkbox-badge-item">
+                <input type="checkbox" name="form-categories" value="ถ่ายวิดีโอ" class="form-category-checkbox">
+                <span class="checkbox-badge-label cat-video-border"><i class="fa-solid fa-video"></i> ถ่ายวิดีโอ</span>
+              </label>
+              <label class="checkbox-badge-item">
+                <input type="checkbox" name="form-categories" value="เครื่องเสียง(ห้องเฟื่องฟ้า)" class="form-category-checkbox">
+                <span class="checkbox-badge-label cat-audio-ff-border"><i class="fa-solid fa-volume-high"></i> เครื่องเสียง (ห้องเฟื่องฟ้า)</span>
+              </label>
+              <label class="checkbox-badge-item">
+                <input type="checkbox" name="form-categories" value="เครื่องเสียง(อบจ)" class="form-category-checkbox">
+                <span class="checkbox-badge-label cat-audio-obj-border"><i class="fa-solid fa-music"></i> เครื่องเสียง (อบจ)</span>
+              </label>
+            </div>
+            <div id="form-category-error" class="error-msg hidden">
+              <i class="fa-solid fa-circle-exclamation"></i> กรุณาเลือกประเภทบริการอย่างน้อย 1 อย่าง
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group col-6">
+              <label for="form-start-input">วันที่/เวลาเริ่มต้น <span class="required">*</span></label>
+              <!-- ปรับชนิดจาก datetime-local เป็น text สำหรับปฏิทิน Flatpickr พ.ศ. -->
+              <input type="text" id="form-start-input" class="form-control" placeholder="เลือกวันเวลาเริ่มต้น..." required readonly>
+            </div>
+            <div class="form-group col-6">
+              <label for="form-end-input">วันที่/เวลาสิ้นสุด <span class="required">*</span></label>
+              <!-- ปรับชนิดจาก datetime-local เป็น text สำหรับปฏิทิน Flatpickr พ.ศ. -->
+              <input type="text" id="form-end-input" class="form-control" placeholder="เลือกวันเวลาสิ้นสุด..." required readonly>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="form-desc-input">ข้อมูลรายละเอียดเพิ่มเติม / เบอร์ประสานงาน</label>
+            <textarea id="form-desc-input" class="form-control" rows="3" placeholder="ระบุเบอร์ติดต่อ หรือข้อมูลบริการเพื่อเตรียมการล่วงหน้า..."></textarea>
+          </div>
+
+          <!-- โซนการจัดการไฟล์อัปโหลด -->
+          <div class="form-group">
+            <label>แนบไฟล์ประกอบเพิ่มเติม (ภาพร่าง, หนังสือขอความอนุเคราะห์, โปสเตอร์)</label>
+            
+            <!-- สถานะไฟล์แนบเดิมเมื่อเลือกโหมดแก้ไข -->
+            <div id="edit-attachment-status" class="existing-file-card hidden">
+              <div class="file-icon-box">
+                <i class="fa-solid fa-file-arrow-up"></i>
+              </div>
+              <div class="file-info-text">
+                <span class="file-name-label">ตรวจพบไฟล์แนบดั้งเดิม</span>
+                <a href="#" id="edit-attachment-link" target="_blank" class="file-link-action">เปิดดูภาพเดิม</a>
+              </div>
+              <button type="button" class="btn-delete-file" onclick="markAttachmentForDeletion()" title="ลบไฟล์เดิม">
+                <i class="fa-solid fa-trash"></i>
+              </button>
+            </div>
+
+            <!-- ดรอปโซนลากวางและเปิดเลือกไฟล์ -->
+            <div id="upload-dropzone" class="upload-dropzone-box">
+              <input type="file" id="form-file-input" class="file-input-hidden" onchange="handleFileSelection(event)">
+              <div class="dropzone-prompt">
+                <i class="fa-solid fa-cloud-arrow-up dropzone-icon"></i>
+                <p class="primary-text">กดคลิกเพื่อเลือกไฟล์ หรือลากเอาไฟล์มาวางเพื่ออัปโหลด</p>
+                <p class="secondary-text">รองรับภาพ, เอกสาร PDF และเสียง (ขนาดไฟล์ไม่เกิน 10MB)</p>
+              </div>
+              
+              <div id="selected-file-display" class="selected-file-card hidden">
+                <i class="fa-solid fa-file-circle-check text-success file-status-icon" style="font-size:1.5rem"></i>
+                <div class="selected-file-meta">
+                  <span id="selected-file-name" class="file-title">filename.jpg</span>
+                  <span id="selected-file-size" class="file-size">0 KB</span>
+                </div>
+                <button type="button" class="btn-clear-selection" onclick="clearFileSelection()">&times;</button>
+              </div>
+            </div>
+          </div>
+        </div>
         
-        console.log("🏁 ปิดหน้าต่างโหลดเรียบร้อย");
-    }
-}
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary ripple" onclick="closeFormModal()">ยกเลิก</button>
+          <button type="submit" class="btn btn-primary ripple"><i class="fa-solid fa-floppy-disk"></i> บันทึกรายการ</button>
+        </div>
+      </form>
+    </div>
+  </div>
 
-// 🛠️ ฟังก์ชันเสริมสำหรับแปลงข้อความวันเวลาภาษาไทยยัดเข้าปฏิทินในหน้าเว็บ
-function parseThaiDateToISO(thaiStr) {
-    if (!thaiStr) return "";
-    try {
-        const months = {"มกราคม":"01","กุมภาพันธ์":"02","มีนาคม":"03","เมษายน":"04","พฤษภาคม":"05","มิถุนายน":"06","กรกฎาคม":"07","สิงหาคม":"08","กันยายน":"09","ตุลาคม":"10","พฤศจิกายน":"11","ธันวาคม":"12"};
-        // ตัดคำว่า เวลา และ น. ออก แล้วตัดแบ่งช่องว่าง
-        let cleanStr = thaiStr.replace("เวลา", "").replace("น.", "").trim();
-        let parts = cleanStr.split(/\s+/);
-        
-        if (parts.length < 3) return thaiStr;
+  <!-- โซนแจ้งเตือน Toast -->
+  <div id="toast-container" class="toast-container-box"></div>
 
-        let day = parts[0].padStart(2, '0');
-        let month = months[parts[1]];
-        let year = String(parseInt(parts[2]) - 543); // แปลง พ.ศ. 2569 เป็น ค.ศ. 2026
-        let time = parts[3] ? parts[3].trim() : "00:00";
-
-        return `${year}-${month}-${day}T${time}:00`;
-    } catch (e) {
-        return thaiStr;
-    }
-}
-
-  function showLoader(show, text) {
-    const loaderTextValue = text || 'กำลังทำงาน...';
-    const loader = document.getElementById('loading-overlay');
-    const loaderText = loader.querySelector('.loading-text');
-    if (show) {
-      if(loaderText) loaderText.innerText = loaderTextValue;
-      loader.classList.add('active');
-    } else {
-      loader.classList.remove('active');
-    }
-  }
-
-  function showToast(message, type) {
-    const toastType = type || 'info';
-    const container = document.getElementById('toast-container');
-    if (!container) return;
-    const toast = document.createElement('div');
-    toast.className = 'toast toast-' + toastType;
-    
-    let icon = '<i class="fa-solid fa-info-circle toast-icon"></i>';
-    if (toastType === 'success') icon = '<i class="fa-solid fa-circle-check toast-icon"></i>';
-    if (toastType === 'error') icon = '<i class="fa-solid fa-circle-exclamation toast-icon"></i>';
-    
-    toast.innerHTML = icon + '\n<span class="toast-message">' + message + '</span>';
-    
-    container.appendChild(toast);
-    setTimeout(() => {
-      toast.style.animation = 'slide-in 0.3s cubic-bezier(0.16, 1, 0.3, 1) reverse forwards';
-      setTimeout(() => toast.remove(), 300);
-    }, 4000);
-  }
-
-  // ==========================================================================
-  // Admin Authorization Sessions
-  // ==========================================================================
-  function openAdminModal() {
-    document.getElementById('admin-password-input').value = '';
-    document.getElementById('admin-login-error').classList.add('hidden');
-    document.getElementById('admin-modal').classList.add('active');
-  }
-  function closeAdminModal() {
-    document.getElementById('admin-modal').classList.remove('active');
-  }
-
-  function setAdminState(adminLogged, password) {
-    isAdmin = adminLogged;
-    adminPassword = password;
-    window.currentAdminPassword = password; // เก็บไว้บน Object หน้าเว็บให้เรียกใช้งานร่วมกัน
-    
-    const statusBadge = document.getElementById('admin-status');
-    const statusText = document.getElementById('admin-status-text');
-    const actionBtn = document.getElementById('admin-action-btn');
-    
-    if (adminLogged) {
-      if(statusBadge) statusBadge.className = 'admin-badge admin-badge-logged';
-      if(statusText) statusText.innerHTML = '<i class="fa-solid fa-shield-check"></i> โหมดผู้ดูแลระบบ (Admin)';
-      if(actionBtn) {
-        actionBtn.innerHTML = '<i class="fa-solid fa-lock-open"></i> ออกจากระบบ Admin';
-        actionBtn.setAttribute('onclick', 'logoutAdmin()');
-      }
-      showToast('เข้าสู่สิทธิ์ผู้ดูแลระบบเรียบร้อย', 'success');
-    } else {
-      if(statusBadge) statusBadge.className = 'admin-badge admin-badge-guest';
-      if(statusText) statusText.innerText = 'โหมดผู้ใช้งานทั่วไป';
-      if(actionBtn) {
-        actionBtn.innerHTML = '<i class="fa-solid fa-lock"></i> เข้าสู่ระบบ Admin';
-        actionBtn.setAttribute('onclick', 'openAdminModal()');
-      }
-    }
-    
-    updateAdminActionButtonsVisibility();
-  }
-
-  async function submitAdminPassword() {
-    const pwdInput = document.getElementById('admin-password-input').value;
-    if (!pwdInput) return;
-    
-    showLoader(true, 'กำลังตรวจสอบสิทธิ์...');
-    
-    try {
-      // ตรวจสอบรหัสผ่านผ่าน API (POST Request)
-      const response = await fetch(API_URL, {
-        method: 'POST',
-        body: JSON.stringify({ action: 'checkAdmin', adminPassword: pwdInput })
-      });
-      const result = await response.json();
-      
-      showLoader(false);
-      if (result.success === true) {
-        localStorage.setItem('gas_calendar_admin', 'true');
-        localStorage.setItem('gas_calendar_admin_pwd', pwdInput);
-        setAdminState(true, pwdInput);
-        closeAdminModal();
-      } else {
-        document.getElementById('admin-login-error').classList.remove('hidden');
-        showToast('รหัสผ่านแอดมินไม่ถูกต้อง', 'error');
-      }
-    } catch (err) {
-      // Fallback โหมดออฟไลน์
-      showLoader(false);
-      if (pwdInput === 'admin' || pwdInput === '1234') {
-        localStorage.setItem('gas_calendar_admin', 'true');
-        localStorage.setItem('gas_calendar_admin_pwd', pwdInput);
-        setAdminState(true, pwdInput);
-        closeAdminModal();
-      } else {
-        document.getElementById('admin-login-error').classList.remove('hidden');
-        showToast('เกิดข้อผิดพลาดและรหัสจำลองไม่ถูกต้อง', 'error');
-      }
-    }
-  }
-
-  function logoutAdmin() {
-    localStorage.removeItem('gas_calendar_admin');
-    localStorage.removeItem('gas_calendar_admin_pwd');
-    window.currentAdminPassword = '';
-    setAdminState(false, '');
-    showToast('ออกจากระบบผู้ดูแลระบบแล้ว', 'info');
-  }
-
-  function updateAdminActionButtonsVisibility() {
-    const deleteBtn = document.getElementById('admin-delete-btn');
-    const editBtn = document.getElementById('admin-edit-btn');
-    if (isAdmin) {
-      if(deleteBtn) deleteBtn.classList.remove('hidden');
-      if(editBtn) editBtn.classList.remove('hidden');
-    } else {
-      if(deleteBtn) deleteBtn.classList.add('hidden');
-      if(editBtn) editBtn.classList.add('hidden');
-    }
-  }
-
-  // ==========================================================================
-  // Date Utility & Parse Engine
-  // ==========================================================================
-  function parseSheetDate(dateStr) {
-    if (!dateStr) return null;
-    try {
-      const parts = dateStr.split(' ');
-      if (parts.length < 2) return null;
-      
-      const datePart = parts[0].replace(',', '');
-      const dateSeparator = datePart.includes('-') ? '-' : (datePart.includes('/') ? '/' : ':');
-      const dateParts = datePart.split(dateSeparator);
-      
-      const timePart = parts[1];
-      const timeParts = timePart.split(':');
-      
-      let year, month, day;
-      
-      if (dateParts[0].length === 4) {
-        year = parseInt(dateParts[0], 10);
-        month = parseInt(dateParts[1], 10) - 1;
-        day = parseInt(dateParts[2], 10);
-      } else { 
-        day = parseInt(dateParts[0], 10);
-        month = parseInt(dateParts[1], 10) - 1;
-        year = parseInt(dateParts[2], 10);
-      }
-      
-      const hour = parseInt(timeParts[0], 10) || 0;
-      const minute = parseInt(timeParts[1], 10) || 0;
-      const second = parseInt(timeParts[2], 10) || 0;
-      
-      return new Date(year, month, day, hour, minute, second);
-    } catch (e) {
-      console.error("ประมวลผลวันที่ล้มเหลว: " + dateStr, e);
-      return null;
-    }
-  }
-
-  function formatToSheetDate(date) {
-    const day = String(date.getDate()).padStart(2, '0');
-    const month = String(date.getMonth() + 1).padStart(2, '0');
-    const year = date.getFullYear();
-    const hours = String(date.getHours()).padStart(2, '0');
-    const minutes = String(date.getMinutes()).padStart(2, '0');
-    const seconds = String(date.getSeconds()).padStart(2, '0');
-    return year + '-' + month + '-' + day + ' ' + hours + ':' + minutes + ':' + seconds;
-  }
-
-  function formatInputValueToSheetString(inputValue) {
-    if (!inputValue) return '';
-    return formatToSheetDate(new Date(inputValue));
-  }
-
-  function formatSheetDateToInputValue(dateStr) {
-    const dateObj = parseSheetDate(dateStr);
-    if (!dateObj) return '';
-    
-    const year = dateObj.getFullYear();
-    const month = String(dateObj.getMonth() + 1).padStart(2, '0');
-    const day = String(dateObj.getDate()).padStart(2, '0');
-    const hours = String(dateObj.getHours()).padStart(2, '0');
-    const minutes = String(dateObj.getMinutes()).padStart(2, '0');
-    
-    return year + '-' + month + '-' + day + 'T' + hours + ':' + minutes;
-  }
-
-  function formatDisplayDate(dateStr) {
-    const date = parseSheetDate(dateStr);
-    if (!date) return '-';
-    
-    const thaiMonths = [
-      'ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.',
-      'ก.ค.', 'ส.ค.', 'ก.ย.', 'ต.ค.', 'พ.ย.', 'ธ.ค.'
-    ];
-    
-    const day = date.getDate();
-    const month = thaiMonths[date.getMonth()];
-    const year = date.getFullYear() + 543;
-    const time = String(date.getHours()).padStart(2, '0') + ':' + String(date.getMinutes()).padStart(2, '0') + ' น.';
-    
-    return day + ' ' + month + ' ' + year + ' เวลา ' + time;
-  }
-
-  const THAI_MONTHS_FULL = [
-    'มกราคม', 'กุมภาพันธ์', 'มีนาคม', 'เมษายน', 'พฤษภาคม', 'มิถุนายน',
-    'กรกฎาคม', 'สิงหาคม', 'กันยายน', 'ตุลาคม', 'พฤศจิกายน', 'ธันวาคม'
-  ];
-
-  // ==========================================================================
-  // Filtering & Search mechanics
-  // ==========================================================================
-  function getSelectedCategoryFilters() {
-    const checkboxes = document.querySelectorAll('.category-filter-checkbox');
-    const selected = [];
-    checkboxes.forEach(cb => {
-      if (cb.checked) selected.push(cb.value);
-    });
-    return selected;
-  }
-
-  function handleSearchFilter() {
-    filterEvents();
-  }
-
-  function filterEvents() {
-    const searchInput = document.getElementById('search-input');
-    const searchQuery = searchInput ? searchInput.value.toLowerCase().trim() : '';
-    const selectedCategories = getSelectedCategoryFilters();
-    
-    filteredEvents = events.filter(evt => {
-      const matchText = !searchQuery || 
-        (evt.Title && evt.Title.toLowerCase().includes(searchQuery)) || 
-        (evt.Description && evt.Description.toLowerCase().includes(searchQuery));
-        
-      const eventCats = evt.Categories ? evt.Categories.split(',').map(c => c.trim()) : [];
-      const matchCategory = eventCats.some(cat => selectedCategories.includes(cat)) || 
-        (eventCats.length === 0 && selectedCategories.length === 0);
-        
-      return matchText && matchCategory;
-    });
-    
-    renderCalendar();
-  }
-
-  // ==========================================================================
-  // Calendar Views Rendering engine
-  // ==========================================================================
-  function switchView(view) {
-    currentView = view;
-    document.getElementById('view-month-btn').classList.toggle('active', view === 'month');
-    document.getElementById('view-week-btn').classList.toggle('active', view === 'week');
-    
-    const grid = document.getElementById('calendar-grid');
-    grid.classList.toggle('week-view', view === 'week');
-    
-    renderCalendar();
-  }
-
-  function navigateCalendar(direction) {
-    if (currentView === 'month') {
-      currentDate.setMonth(currentDate.getMonth() + direction);
-    } else {
-      currentDate.setDate(currentDate.getDate() + (direction * 7));
-    }
-    renderCalendar();
-  }
-
-  function navigateToday() {
-    currentDate = new Date();
-    renderCalendar();
-  }
-
-  function renderCalendar() {
-    const grid = document.getElementById('calendar-grid');
-    if(!grid) return;
-    grid.innerHTML = '';
-    
-    const currentMonthName = THAI_MONTHS_FULL[currentDate.getMonth()];
-    const currentYearBE = currentDate.getFullYear() + 543;
-    
-    if (currentView === 'month') {
-      document.getElementById('calendar-title-display').innerText = currentMonthName + ' ' + currentYearBE;
-      document.getElementById('sidebar-month-display').innerText = currentMonthName + ' ' + currentYearBE;
-      renderMonthView(grid);
-    } else {
-      const sunDate = getSundayOfWeek(currentDate);
-      const satDate = new Date(sunDate);
-      satDate.setDate(sunDate.getDate() + 6);
-      
-      const startStr = sunDate.getDate() + ' ' + THAI_MONTHS_FULL[sunDate.getMonth()] + ' ' + (sunDate.getFullYear() + 543);
-      const endStr = satDate.getDate() + ' ' + THAI_MONTHS_FULL[satDate.getMonth()] + ' ' + (satDate.getFullYear() + 543);
-      
-      document.getElementById('calendar-title-display').innerText = 'ช่วงสัปดาห์: ' + startStr + ' - ' + endStr;
-      document.getElementById('sidebar-month-display').innerText = currentMonthName + ' ' + currentYearBE;
-      renderWeekView(grid);
-    }
-    
-    // ดักจับการพังกรณีไม่ได้เขียนฟังก์ชันแดชบอร์ดรองรับไว้
-    if (typeof updateDashboard === "function") {
-      updateDashboard();
-    }
-  }
-
-  function renderMonthView(gridContainer) {
-    const year = currentDate.getFullYear();
-    const month = currentDate.getMonth();
-    
-    const firstDayIndex = new Date(year, month, 1).getDay();
-    const totalDays = new Date(year, month + 1, 0).getDate();
-    const prevMonthTotalDays = new Date(year, month, 0).getDate();
-    const today = new Date();
-    
-    for (let i = firstDayIndex - 1; i >= 0; i--) {
-      const dayNum = prevMonthTotalDays - i;
-      const dateObj = new Date(year, month - 1, dayNum);
-      createDayCell(gridContainer, dayNum, dateObj, true);
-    }
-    
-    for (let dayNum = 1; dayNum <= totalDays; dayNum++) {
-      const dateObj = new Date(year, month, dayNum);
-      const isToday = dateObj.toDateString() === today.toDateString();
-      createDayCell(gridContainer, dayNum, dateObj, false, isToday);
-    }
-    
-    const totalCells = gridContainer.children.length;
-    const remainingCells = 42 - totalCells;
-    
-    for (let dayNum = 1; dayNum <= remainingCells; dayNum++) {
-      const dateObj = new Date(year, month + 1, dayNum);
-      createDayCell(gridContainer, dayNum, dateObj, true);
-    }
-  }
-
-  function renderWeekView(gridContainer) {
-    const sunday = getSundayOfWeek(currentDate);
-    const today = new Date();
-    
-    for (let i = 0; i < 7; i++) {
-      const dateObj = new Date(sunday);
-      dateObj.setDate(sunday.getDate() + i);
-      const isToday = dateObj.toDateString() === today.toDateString();
-      createDayCell(gridContainer, dateObj.getDate(), dateObj, false, isToday);
-    }
-  }
-
-  function getSundayOfWeek(d) {
-    const date = new Date(d);
-    const day = date.getDay();
-    const diff = date.getDate() - day;
-    return new Date(date.setDate(diff));
-  }
-
-  function createDayCell(container, dayNumber, dateObj, isOtherMonth, isToday) {
-    const cellTodayStatus = isToday || false;
-    const cell = document.createElement('div');
-    cell.className = 'day-cell';
-    if (isOtherMonth) cell.classList.add('other-month');
-    if (cellTodayStatus) cell.classList.add('today');
-    
-    const header = document.createElement('div');
-    header.className = 'day-header';
-    
-    const numSpan = document.createElement('span');
-    numSpan.className = 'day-number';
-    numSpan.innerText = dayNumber;
-    header.appendChild(numSpan);
-    cell.appendChild(header);
-    
-    const eventsList = document.createElement('div');
-    eventsList.className = 'day-events-container';
-    
-    const eventsOnDay = getEventsForDate(dateObj);
-    
-    eventsOnDay.forEach(evt => {
-      const chip = document.createElement('div');
-      chip.className = 'event-chip';
-      
-      const categoriesList = evt.Categories ? evt.Categories.split(',').map(c => c.trim()) : [];
-      
-      if (categoriesList.length === 1) {
-        const cat = categoriesList[0];
-        if (cat === 'ถ่ายภาพ') chip.classList.add('chip-photo');
-        else if (cat === 'ถ่ายวิดีโอ') chip.classList.add('chip-video');
-        else if (cat === 'เครื่องเสียง(ห้องเฟื่องฟ้า)') chip.classList.add('chip-audio-ff');
-        else if (cat === 'เครื่องเสียง(อบจ)') chip.classList.add('chip-audio-obj');
-      } else if (categoriesList.length > 1) {
-        chip.classList.add('chip-multi');
-        
-        const dotsContainer = document.createElement('div');
-        dotsContainer.className = 'chip-categories-dots';
-        
-        categoriesList.forEach(cat => {
-          const dot = document.createElement('span');
-          dot.className = 'dot-indicator';
-          if (cat === 'ถ่ายภาพ') dot.style.backgroundColor = 'var(--color-photo)';
-          else if (cat === 'ถ่ายวิดีโอ') dot.style.backgroundColor = 'var(--color-video)';
-          else if (cat === 'เครื่องเสียง(ห้องเฟื่องฟ้า)') dot.style.backgroundColor = 'var(--color-audio-ff)';
-          else if (cat === 'เครื่องเสียง(อบจ)') dot.style.backgroundColor = 'var(--color-audio-obj)';
-          dotsContainer.appendChild(dot);
-        });
-        chip.appendChild(dotsContainer);
-      }
-      
-      const titleText = document.createElement('span');
-      titleText.innerText = evt.Title;
-      chip.appendChild(titleText);
-      
-      chip.onclick = function(e) {
-        e.stopPropagation();
-        openDetailModal(evt);
-      };
-      
-      eventsList.appendChild(chip);
-    });
-    
-    cell.appendChild(eventsList);
-    container.appendChild(cell);
-  }
-
-  function getEventsForDate(targetDate) {
-    const compareDate = new Date(targetDate.getFullYear(), targetDate.getMonth(), targetDate.getDate());
-    
-    return filteredEvents.filter(evt => {
-      const sDate = parseSheetDate(evt['Start Date']);
-      const eDate = parseSheetDate(evt['End Date']);
-      if (!sDate || !eDate) return false;
-      
-      const startDateClean = new Date(sDate.getFullYear(), sDate.getMonth(), sDate.getDate());
-      const endDateClean = new Date(eDate.getFullYear(), eDate.getMonth(), eDate.getDate());
-      
-      return compareDate >= startDateClean && compareDate <= endDateClean;
-    });
-  }
-
-  // ==========================================================================
-  // Modal View detail
-  // ==========================================================================
-  function openDetailModal(eventObj) {
-    selectedEvent = eventObj;
-    
-    document.getElementById('detail-title').innerText = eventObj.Title;
-    document.getElementById('detail-start').innerText = formatDisplayDate(eventObj['Start Date']);
-    document.getElementById('detail-end').innerText = formatDisplayDate(eventObj['End Date']);
-    document.getElementById('detail-desc').innerText = eventObj.Description || 'ไม่มีรายละเอียดการจองประสาน';
-    document.getElementById('detail-id').innerText = eventObj.ID;
-    
-    const badgeContainer = document.getElementById('detail-categories');
-    badgeContainer.innerHTML = '';
-    const categoriesList = eventObj.Categories ? eventObj.Categories.split(',').map(c => c.trim()) : [];
-    
-    categoriesList.forEach(cat => {
-      const badge = document.createElement('span');
-      badge.className = 'detail-tag';
-      if (cat === 'ถ่ายภาพ') badge.className += ' tag-photo';
-      else if (cat === 'ถ่ายวิดีโอ') badge.className += ' tag-video';
-      else if (cat === 'เครื่องเสียง(ห้องเฟื่องฟ้า)') badge.className += ' tag-audio-ff';
-      else if (cat === 'เครื่องเสียง(อบจ)') badge.className += ' tag-audio-obj';
-      badge.innerText = cat;
-      badgeContainer.appendChild(badge);
-    });
-    
-    const previewContainer = document.getElementById('detail-file-preview');
-    const attachmentSection = document.getElementById('detail-attachment-section');
-    previewContainer.innerHTML = '';
-    
-    if (eventObj['Attachment URL']) {
-      attachmentSection.classList.remove('hidden');
-      
-      const fileUrl = eventObj['Attachment URL'];
-      const fileId = eventObj['Attachment ID'];
-      const urlLower = fileUrl.toLowerCase();
-      
-      const isImage = urlLower.includes('drive.google.com/file') || 
-                      urlLower.includes('lh3.googleusercontent.com') ||
-                      urlLower.startsWith('data:image') || 
-                      /\.(jpg|jpeg|png|gif|webp|svg)/.test(urlLower);
-                      
-      const isAudio = urlLower.startsWith('data:audio') || /\.(mp3|wav|ogg|aac|m4a)/.test(urlLower);
-      const isVideo = urlLower.startsWith('data:video') || /\.(mp4|webm|ogg|mov)/.test(urlLower);
-      
-      if (isImage) {
-        let embedUrl = fileUrl;
-        if (fileId) {
-          embedUrl = 'https://docs.google.com/uc?export=view&id=' + fileId;
-        }
-        previewContainer.innerHTML = 
-          '<img class="preview-image" style="max-width:100%; max-height:200px; margin-bottom:10px;" src="' + embedUrl + '" onerror="this.onerror=null; this.src=\'https://placehold.co/400x200?text=Image\';" alt="ภาพแนบ">' +
-          '<a href="' + fileUrl + '" class="btn" style="display:block; text-align:center; background:#3498db;" target="_blank">' +
-            '<i class="fa-solid fa-up-right-from-square"></i> เปิดดูรูปภาพเต็ม' +
-          '</a>';
-      } else if (isAudio) {
-        let audioSrc = fileUrl;
-        if (fileId) {
-          audioSrc = 'https://docs.google.com/uc?export=download&id=' + fileId;
-        }
-        previewContainer.innerHTML = 
-          '<audio controls style="width:100%; margin-bottom:10px;" src="' + audioSrc + '"></audio>' +
-          '<a href="' + fileUrl + '" class="btn" style="display:block; text-align:center; background:#3498db;" target="_blank">' +
-            '<i class="fa-solid fa-arrow-down"></i> ดาวน์โหลดเสียง' +
-          '</a>';
-      } else if (isVideo) {
-        let videoSrc = fileUrl;
-        if (fileId) {
-          videoSrc = 'https://docs.google.com/uc?export=download&id=' + fileId;
-        }
-        previewContainer.innerHTML = 
-          '<video controls style="max-width:100%; max-height:180px; margin-bottom:10px;" src="' + videoSrc + '"></video>' +
-          '<a href="' + fileUrl + '" class="btn" style="display:block; text-align:center; background:#3498db;" target="_blank">' +
-            '<i class="fa-solid fa-play"></i> เปิดดูวิดีโอ' +
-          '</a>';
-      } else {
-        previewContainer.innerHTML = 
-          '<div class="file-icon-box" style="font-size: 2.5rem; margin-bottom:10px;">' +
-            '<i class="fa-solid fa-file-pdf text-primary" style="color:#e74c3c;"></i>' +
-          '</div>' +
-          '<p style="margin:5px 0; font-size:0.85rem;">กดเปิดด้านล่างเพื่อดาวน์โหลดเอกสารอ้างอิง</p>' +
-          '<a href="' + fileUrl + '" class="btn" style="display:block; text-align:center; background:#3498db;" target="_blank">' +
-            '<i class="fa-solid fa-download"></i> ดาวน์โหลดเอกสารประกอบ' +
-          '</a>';
-      }
-    } else {
-      attachmentSection.classList.add('hidden');
-    }
-    
-    updateAdminActionButtonsVisibility();
-    document.getElementById('detail-modal').classList.add('active');
-  }
-
-  function closeDetailModal() {
-    document.getElementById('detail-modal').classList.remove('active');
-    const media = document.getElementById('detail-file-preview').querySelectorAll('audio, video');
-    media.forEach(m => m.pause());
-  }
-
-  // ==========================================================================
-  // Admin Action Flows
-  // ==========================================================================
-  async function triggerDeleteEvent() {
-    if (!selectedEvent) return;
-    if (!confirm('คุณแน่ใจว่าต้องการลบกิจกรรม "' + selectedEvent.Title + '" ใช่หรือไม่?')) {
-      return;
-    }
-    
-    showLoader(true, 'กำลังดำเนินการลบกิจกรรม...');
-    closeDetailModal();
-    
-    try {
-      // ลบข้อมูลผ่าน API
-      const response = await fetch(API_URL, {
-        method: 'POST',
-        body: JSON.stringify({
-          action: 'deleteEvent',
-          eventData: { id: selectedEvent.ID },
-          adminPassword: adminPassword || window.currentAdminPassword
-        })
-      });
-      const result = await response.json();
-      
-      showLoader(false);
-      if (result.success) {
-        showToast('ลบรายการกิจกรรมเรียบร้อยแล้ว', 'success');
-        loadEventsFromServer();
-      } else {
-        throw new Error(result.message);
-      }
-    } catch (err) {
-      showLoader(false);
-      // Local Fallback หากระบบตัดการทำงาน
-      events = events.filter(evt => evt.ID !== selectedEvent.ID);
-      localStorage.setItem('gas_calendar_events', JSON.stringify(events));
-      loadEventsFromServer();
-      showToast('ลบข้อมูลในระดับเครื่องทดสอบ (Local) แล้ว', 'info');
-    }
-  }
-
-  function triggerEditEvent() {
-    if (!selectedEvent) return;
-    closeDetailModal();
-    
-    document.getElementById('form-event-id').value = selectedEvent.ID;
-    document.getElementById('form-title-input').value = selectedEvent.Title;
-    document.getElementById('form-desc-input').value = selectedEvent.Description || '';
-    
-    const startDateObj = parseSheetDate(selectedEvent['Start Date']);
-    const endDateObj = parseSheetDate(selectedEvent['End Date']);
-    
-    startPicker.setDate(startDateObj);
-    endPicker.setDate(endDateObj);
-    
-    const categoriesList = selectedEvent.Categories ? selectedEvent.Categories.split(',').map(c => c.trim()) : [];
-    const checkboxes = document.querySelectorAll('.form-category-checkbox');
-    checkboxes.forEach(cb => {
-      cb.checked = categoriesList.includes(cb.value);
-    });
-    
-    clearFileSelection();
-    deleteExistingAttachment = false;
-    
-    const editAttachmentStatus = document.getElementById('edit-attachment-status');
-    if (selectedEvent['Attachment URL']) {
-      editAttachmentStatus.classList.remove('hidden');
-      document.getElementById('edit-attachment-link').href = selectedEvent['Attachment URL'];
-      editAttachmentStatus.classList.remove('marked-deleted');
-    } else {
-      editAttachmentStatus.classList.add('hidden');
-    }
-    
-    document.getElementById('form-title').innerText = 'แก้ไขข้อมูลรายการประสาน (แอดมิน)';
-    document.getElementById('form-modal').classList.add('active');
-  }
-
-  function markAttachmentForDeletion() {
-    deleteExistingAttachment = true;
-    document.getElementById('edit-attachment-status').classList.add('marked-deleted');
-    showToast('ไฟล์แนบเดิมจะถูกลบออกเมื่อคลิกปุ่มบันทึกรายการ', 'info');
-  }
-
-  // ==========================================================================
-  // Forms Submissions Engine & Drag and Drop Mock Setup
-  // ==========================================================================
-  function openAddEventModal() {
-    document.getElementById('form-event-id').value = '';
-    document.getElementById('form-title-input').value = '';
-    document.getElementById('form-desc-input').value = '';
-    
-    const now = new Date();
-    now.setMinutes(0);
-    now.setSeconds(0);
-    
-    const startVal = new Date(now);
-    const endVal = new Date(now);
-    endVal.setHours(endVal.getHours() + 1);
-    
-    startPicker.setDate(startVal);
-    endPicker.setDate(endVal);
-    
-    const checkboxes = document.querySelectorAll('.form-category-checkbox');
-    checkboxes.forEach(cb => cb.checked = false);
-    
-    clearFileSelection();
-    deleteExistingAttachment = false;
-    
-    const editAttachmentStatus = document.getElementById('edit-attachment-status');
-    if (editAttachmentStatus) editAttachmentStatus.classList.add('hidden');
-    
-    document.getElementById('form-title').innerText = 'เพิ่มกิจกรรมใหม่ลงปฏิทิน';
-    document.getElementById('form-modal').classList.add('active');
-  }
-
-  function closeFormModal() {
-    document.getElementById('form-modal').classList.remove('active');
-  }
-
-  function handleFileSelection(event) {
-    const file = event.target.files[0];
-    if (!file) return;
-    
-    if (file.size > 10 * 1024 * 1024) {
-      showToast('ไฟล์มีขนาดเกินข้อกำหนดสูงสุด (ไม่เกิน 10MB)', 'error');
-      clearFileSelection();
-      return;
-    }
-    
-    const reader = new FileReader();
-    reader.onload = function(e) {
-      const dataUrl = e.target.result;
-      const base64Data = dataUrl.split(',')[1];
-      
-      selectedFile = {
-        bytes: base64Data,
-        name: file.name,
-        mimeType: file.type,
-        rawUrl: dataUrl
-      };
-      
-      document.getElementById('selected-file-name').innerText = file.name;
-      document.getElementById('selected-file-size').innerText = (file.size / 1024).toFixed(1) + ' KB';
-      document.getElementById('selected-file-display').classList.remove('hidden');
-      document.querySelector('.dropzone-prompt').classList.add('hidden');
-    };
-    reader.readAsDataURL(file);
-  }
-
-  function clearFileSelection() {
-    selectedFile = null;
-    const fileInput = document.getElementById('form-file-input');
-    if (fileInput) fileInput.value = '';
-    document.getElementById('selected-file-display').classList.add('hidden');
-    document.querySelector('.dropzone-prompt').classList.remove('hidden');
-  }
-
-  function setupDragAndDrop() {
-    const dropzone = document.getElementById('upload-dropzone');
-    if (!dropzone) return;
-
-    ['dragenter', 'dragover'].forEach(eventName => {
-      dropzone.addEventListener(eventName, (e) => {
-        e.preventDefault();
-        dropzone.classList.add('highlight');
-      }, false);
-    });
-
-    ['dragleave', 'drop'].forEach(eventName => {
-      dropzone.addEventListener(eventName, (e) => {
-        e.preventDefault();
-        dropzone.classList.remove('highlight');
-      }, false);
-    });
-
-    dropzone.addEventListener('drop', (e) => {
-      const dt = e.dataTransfer;
-      const files = dt.files;
-      if (files.length) {
-        const fileInput = document.getElementById('form-file-input');
-        if (fileInput) {
-          fileInput.files = files;
-          handleFileSelection({ target: fileInput });
-        }
-      }
-    }, false);
-  }
-
-  // 👉 ประมวลผลจัดการสตรีมส่งฟอร์มข้อมูลไปยัง API หลักภายนอก
-  async function handleFormSubmit(e) {
-    if(e && e.preventDefault) e.preventDefault();
-    
-    const categoryCbs = document.querySelectorAll('.form-category-checkbox');
-    const checkedCategories = [];
-    categoryCbs.forEach(cb => {
-      if (cb.checked) checkedCategories.push(cb.value);
-    });
-    
-    // 1. ตรวจสอบว่าเลือกหมวดหมู่อย่างน้อยหนึ่งอย่างตามเงื่อนไข UI
-    const categoryError = document.getElementById('form-category-error');
-    if (checkedCategories.length === 0) {
-      if (categoryError) categoryError.classList.remove('hidden');
-      return;
-    } else {
-      if (categoryError) categoryError.classList.add('hidden');
-    }
-
-    const eventId = document.getElementById('form-event-id').value;
-    showLoader(true, 'กำลังบันทึกข้อมูลกิจกรรมลงฐานข้อมูล...');
-
-    // 2. รวบรวมข้อมูลดิบ (Data Packets) เพื่อเตรียมยิงข้ามแพลตฟอร์ม
-    const eventData = {
-      id: eventId,
-      title: document.getElementById('form-title-input').value,
-      categories: checkedCategories.join(','),
-      startDate: document.getElementById('form-start-input').value, // ดึงรูปแบบ ค.ศ. จาก Flatpickr
-      endDate: document.getElementById('form-end-input').value,
-      description: document.getElementById('form-desc-input').value,
-      deleteExistingAttachment: deleteExistingAttachment
-    };
-
-    const action = eventId ? 'updateEvent' : 'addEvent';
-    const currentPassword = adminPassword || window.currentAdminPassword || '';
-
-    try {
-      // 3. ยิงข้อมูลไปยังเซิร์ฟเวอร์ด้วย Fetch API
-      const response = await fetch(API_URL, {
-        method: 'POST',
-        body: JSON.stringify({
-          action: action,
-          eventData: eventData,
-          fileData: selectedFile, // ส่ง Object Base64 เอกสารแนบ (ถ้ามี)
-          adminPassword: currentPassword
-        })
-      });
-      
-      const result = await response.json();
-      showLoader(false);
-
-      if (result.success) {
-        showToast('บันทึกข้อมูลรายการสำเร็จเรียบร้อยแล้ว!', 'success');
-        closeFormModal();
-        loadEventsFromServer(); // โหลดข้อมูลใหม่มาวาดตารางแบบเรียลไทม์
-      } else {
-        throw new Error(result.message);
-      }
-
-    } catch (err) {
-      console.warn("⚠️ การส่งฟอร์มไปยัง API ล้มเหลว ทำการบันทึกระดับ Local แทน:", err);
-      showLoader(false);
-
-      // จำลองผลลัพธ์ลง LocalStorage (กรณีใช้ทดสอบแบบออฟไลน์)
-      if (!eventId) {
-        // สร้างชุดข้อมูลกิจกรรมใหม่
-        const newMockEvent = {
-          ID: "mock-" + Date.now(),
-          Title: eventData.title,
-          "Start Date": eventData.startDate,
-          "End Date": eventData.endDate,
-          Categories: eventData.categories,
-          Description: eventData.description,
-          "Attachment URL": selectedFile ? selectedFile.rawUrl : "",
-          "Attachment ID": selectedFile ? "mock-id-file" : ""
-        };
-        events.push(newMockEvent);
-      } else {
-        // ค้นหาและแก้ไขข้อมูลชุดเดิม
-        events = events.map(evt => {
-          if (evt.ID === eventId) {
-            return {
-              ...evt,
-              Title: eventData.title,
-              "Start Date": eventData.startDate,
-              "End Date": eventData.endDate,
-              Categories: eventData.categories,
-              Description: eventData.description,
-              "Attachment URL": deleteExistingAttachment ? "" : (selectedFile ? selectedFile.rawUrl : evt["Attachment URL"]),
-              "Attachment ID": deleteExistingAttachment ? "" : (selectedFile ? "mock-id-file" : evt["Attachment ID"])
-            };
-          }
-          return evt;
-        });
-      }
-
-      localStorage.setItem('gas_calendar_events', JSON.stringify(events));
-      showToast('บันทึกข้อมูลแบบโลคอลสำเร็จ (เครื่องทดสอบ)', 'success');
-      closeFormModal();
-      filterEvents();
-    }
-  }
-  </script>
+<script scr="https://raw.githubusercontent.com/blm-school/ict/refs/heads/main/script.js"></script>
 </body>
 </html>
