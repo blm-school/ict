@@ -490,26 +490,24 @@ async function loadEventsFromServer() {
             } else if (typeof renderCalendar === "function") {
                 // ถ้าคุณสร้างฟังก์ชันแยกไว้ ให้ส่งเข้าฟังก์ชันเดิม
                 renderCalendar(cleanedEvents);
+            } catch (error) {
+              console.error("❌ พังตอนรับข้อมูลมาวาดปฏิทิน:", error);
+              loadLocalEvents();
+          } finally {
+            // 💡 บังคับซ่อนข้อความโหลดเสมอเมื่อทำงานเสร็จ (ไม่ว่าจะดึงข้อมูลสำเร็จหรือพัง)
+            
+            // หากระบบเดิมมีฟังก์ชันปิดหน้าโหลด เช่น hideLoading(); หรือ toggleLoading(false); ให้เอาคอมเมนต์ออกแล้วเรียกใช้ตรงนี้ได้เลยครับ
+            // hideLoading(); 
+    
+            // ดักซ่อนผ่าน ID (ตรวจสอบ ID ในหน้า HTML ของคุณอีกครั้งให้ตรงกัน)
+            const loadingElement = document.getElementById("loading-overlay"); 
+            if (loadingElement) {
+                loadingElement.style.display = "none";
             }
-
-    } catch (error) {
-        console.error("❌ พังตอนรับข้อมูลมาวาดปฏิทิน:", error);
-        loadLocalEvents();
-    } finally {
-        // 💡 บังคับซ่อนข้อความโหลดเสมอเมื่อทำงานเสร็จ (ไม่ว่าจะดึงข้อมูลสำเร็จหรือพัง)
-        
-        // หากระบบเดิมมีฟังก์ชันปิดหน้าโหลด เช่น hideLoading(); หรือ toggleLoading(false); ให้เอาคอมเมนต์ออกแล้วเรียกใช้ตรงนี้ได้เลยครับ
-        // hideLoading(); 
-
-        // ดักซ่อนผ่าน ID (ตรวจสอบ ID ในหน้า HTML ของคุณอีกครั้งให้ตรงกัน)
-        const loadingElement = document.getElementById("loading-overlay"); 
-        if (loadingElement) {
-            loadingElement.style.display = "none";
+            
+            console.log("🏁 ปิดหน้าต่างโหลดเรียบร้อย");
         }
-        
-        console.log("🏁 ปิดหน้าต่างโหลดเรียบร้อย");
     }
-}
 
 // 🛠️ ฟังก์ชันเสริมสำหรับแปลงข้อความวันเวลาภาษาไทยยัดเข้าปฏิทินในหน้าเว็บ
 function parseThaiDateToISO(thaiStr) {
