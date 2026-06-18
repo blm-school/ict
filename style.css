@@ -2,8 +2,8 @@
    Premium Glassmorphism Dark Theme Configuration
    ========================================================================== */
 :root {
-  --font-display: 'Outfit', 'Inter', sans-serif;
-  --font-body: 'Inter', sans-serif;
+  --font-display: 'Sarabun', sans-serif;
+  --font-body: 'Sarabun', sans-serif;
   --bg-app: #0b0f19;
   --bg-sidebar: #111827;
   --bg-card: rgba(22, 28, 45, 0.75);
