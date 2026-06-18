@@ -959,3 +959,58 @@ function updateDashboard() {
     });
   }
 }
+
+
+
+
+
+
+
+
+
+/**
+ * ฟังก์ชันเริ่มต้นธีม (เรียกใช้เมื่อโหลดหน้าเว็บเสร็จ)
+ */
+function initTheme() {
+  const savedTheme = localStorage.getItem('theme');
+  // จะเปิดโหมดมืด เฉพาะเมื่อผู้ใช้เคยเปิดทิ้งไว้ก่อนหน้านี้เท่านั้น นอกนั้นเริ่มด้วยโหมดสว่างเสมอ
+  const isDark = (savedTheme === 'dark');
+  
+  if (isDark) {
+    document.body.classList.add('dark-mode');
+  } else {
+    document.body.classList.remove('dark-mode');
+  }
+  
+  updateThemeButtonUI(isDark);
+  console.log(`🌓 [Theme] ธีมเริ่มต้นถูกกำหนดเป็น: ${isDark ? 'โหมดมืด (Dark)' : 'โหมดสว่าง (Light)'}`);
+}
+
+/**
+ * ฟังก์ชันสำหรับคลิกสลับธีม
+ */
+function toggleTheme() {
+  const isDark = document.body.classList.toggle('dark-mode');
+  
+  // บันทึกตัวเลือกเก็บไว้ในเบราว์เซอร์
+  localStorage.setItem('theme', isDark ? 'dark' : 'light');
+  
+  updateThemeButtonUI(isDark);
+  console.log(`🌓 [Theme] สลับธีมผู้ใช้เป็น: ${isDark ? 'โหมดมืด' : 'โหมดสว่าง'}`);
+}
+
+/**
+ * อัปเดตไอคอนและข้อความบนปุ่มกดตามสถานะจริง
+ */
+function updateThemeButtonUI(isDark) {
+  const btn = document.getElementById('theme-toggle-btn');
+  if (!btn) return;
+  
+  if (isDark) {
+    btn.innerHTML = '<i class="fa-solid fa-sun"></i> โหมดสว่าง';
+  } else {
+    btn.innerHTML = '<i class="fa-solid fa-moon"></i> โหมดมืด';
+  }
+}
+
+// และเพิ่มการเรียกใช้ initTheme(); ไว้ในส่วนของการเริ่มระบบงานเช่นเคยครับ
