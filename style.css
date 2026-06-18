@@ -1,23 +1,34 @@
 /* ==========================================================================
-   Premium Glassmorphism Dark Theme Configuration
+   Premium Glassmorphism Theme Configuration (Light Mode Default)
    ========================================================================== */
 :root {
   --font-display: 'Sarabun', sans-serif;
   --font-body: 'Sarabun', sans-serif;
-  --bg-app: #0b0f19;
-  --bg-sidebar: #111827;
-  --bg-card: rgba(22, 28, 45, 0.75);
-  --bg-card-hover: rgba(30, 41, 59, 0.9);
-  --border-color: rgba(255, 255, 255, 0.08);
+  
+  /* ☀️ Light Mode (Default Theme) */
+  --bg-app: #f1f5f9;                    /* พื้นหลังแอปสีเทาอ่อนหรูหรา */
+  --bg-sidebar: #ffffff;                /* แถบข้างสีขาวคลีน */
+  --bg-card: rgba(255, 255, 255, 0.75); /* การ์ดใสบนพื้นสว่าง */
+  --bg-card-hover: rgba(255, 255, 255, 0.95);
+  --bg-header: rgba(241, 245, 249, 0.85); /* เฮดเดอร์ใสด้านบน */
+  --bg-modal: #ffffff;                  /* กล่องโมดอลสีขาวพรีเมียม */
+  --bg-input: rgba(15, 23, 42, 0.05);   /* ช่องกรอกข้อมูลสีเทาจาง */
+  --bg-switcher: rgba(15, 23, 42, 0.04);
+  --bg-badge-container: rgba(15, 23, 42, 0.02);
+  --bg-badge-checked: rgba(15, 23, 42, 0.05);
+  --bg-upcoming: rgba(15, 23, 42, 0.03);
+  --bg-desc: rgba(15, 23, 42, 0.04);
+  
+  --border-color: rgba(15, 23, 42, 0.08); /* ขอบสีเทาบางเฉียบ */
   --border-focus: #3b82f6;
   
-  --text-main: #f3f4f6;
-  --text-muted: #9ca3af;
-  --text-inverse: #111827;
+  --text-main: #0f172a;                 /* สีหนังสือหลัก (Slate 900) */
+  --text-muted: #64748b;                /* สีหนังสือรอง (Slate 500) */
+  --text-inverse: #ffffff;              /* สีตัวหนังสือสวนทาง */
   
   --color-primary: #3b82f6;
   --color-primary-hover: #2563eb;
-  --color-secondary: #4b5563;
+  --color-secondary: #64748b;
   --color-danger: #ef4444;
   --color-danger-hover: #dc2626;
   --color-warning: #f59e0b;
@@ -25,7 +36,53 @@
   --color-success: #10b981;
   --color-success-hover: #059669;
 
-  /* สีหมวดหมู่ (Neon Accents) */
+  /* สีหมวดหมู่ (สำหรับโหมดสว่าง: ปรับเฉดเข้มขึ้นเล็กน้อยให้อ่านง่ายขึ้น) */
+  --color-photo: #0891b2;
+  --color-video: #7c3aed;
+  --color-audio-ff: #ea580c;
+  --color-audio-obj: #0d9488;
+
+  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  --shadow-md: 0 4px 6px -1px rgba(15, 23, 42, 0.08), 0 2px 4px -1px rgba(15, 23, 42, 0.04);
+  --shadow-lg: 0 10px 15px -3px rgba(15, 23, 42, 0.08), 0 4px 6px -2px rgba(15, 23, 42, 0.03);
+  --shadow-glow: 0 0 15px rgba(59, 130, 246, 0.15);
+  --scrollbar-thumb: rgba(15, 23, 42, 0.15);
+  
+  --glass-blur: blur(14px);
+  --sidebar-width: 330px;
+  --radius-sm: 6px;
+  --radius-md: 12px;
+  --radius-lg: 20px;
+  
+  --transition-fast: 0.15s ease;
+  --transition-normal: 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* 🌙 Dark Mode (เมื่อมีการสลับเปิดโหมดมืด) */
+body.dark-mode {
+  --bg-app: #0b0f19;
+  --bg-sidebar: #111827;
+  --bg-card: rgba(22, 28, 45, 0.75);
+  --bg-card-hover: rgba(30, 41, 59, 0.9);
+  --bg-header: rgba(11, 15, 25, 0.8);
+  --bg-modal: #121824;
+  --bg-input: rgba(0, 0, 0, 0.2);
+  --bg-switcher: rgba(255, 255, 255, 0.05);
+  --bg-badge-container: rgba(255, 255, 255, 0.02);
+  --bg-badge-checked: rgba(255, 255, 255, 0.03);
+  --bg-upcoming: rgba(0, 0, 0, 0.15);
+  --bg-desc: rgba(0, 0, 0, 0.15);
+  
+  --border-color: rgba(255, 255, 255, 0.08);
+  --border-focus: #3b82f6;
+  
+  --text-main: #f3f4f6;
+  --text-muted: #9ca3af;
+  --text-inverse: #111827;
+  
+  --color-secondary: #4b5563;
+
+  /* สีหมวดหมู่ (เฉดสว่างเดิมสำหรับพื้นหลังมืด) */
   --color-photo: #06b6d4;
   --color-video: #8b5cf6;
   --color-audio-ff: #f97316;
@@ -35,14 +92,7 @@
   --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
   --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.3), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
   --shadow-glow: 0 0 15px rgba(59, 130, 246, 0.3);
-  --glass-blur: blur(14px);
-  --sidebar-width: 330px;
-  --radius-sm: 6px;
-  --radius-md: 12px;
-  --radius-lg: 20px;
-  
-  --transition-fast: 0.15s ease;
-  --transition-normal: 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  --scrollbar-thumb: rgba(255, 255, 255, 0.15);
 }
 
 * {
@@ -58,11 +108,14 @@ body {
   overflow: hidden;
   height: 100vh;
   -webkit-font-smoothing: antialiased;
+  /* เพิ่มเอฟเฟกต์ Fade นุ่มๆ ตอนสลับโหมด */
+  transition: background-color var(--transition-normal), color var(--transition-normal); 
 }
 
 h1, h2, h3, h4 {
   font-family: var(--font-display);
   font-weight: 600;
+  transition: color var(--transition-normal);
 }
 
 ::-webkit-scrollbar {
@@ -70,10 +123,10 @@ h1, h2, h3, h4 {
   height: 6px;
 }
 ::-webkit-scrollbar-track {
-  background: rgba(0, 0, 0, 0.15);
+  background: rgba(0, 0, 0, 0.1);
 }
 ::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.15);
+  background: var(--scrollbar-thumb);
   border-radius: 4px;
 }
 ::-webkit-scrollbar-thumb:hover {
@@ -98,6 +151,7 @@ h1, h2, h3, h4 {
   gap: 1.25rem;
   overflow-y: auto;
   flex-shrink: 0;
+  transition: background-color var(--transition-normal), border-color var(--transition-normal);
 }
 .brand {
   display: flex;
@@ -107,7 +161,7 @@ h1, h2, h3, h4 {
 .brand .logo {
   font-size: 1.75rem;
   color: var(--color-primary);
-  text-shadow: 0 0 10px rgba(59, 130, 246, 0.5);
+  text-shadow: 0 0 10px rgba(59, 130, 246, 0.3);
 }
 .brand h1 {
   font-size: 1.15rem;
@@ -134,9 +188,10 @@ h1, h2, h3, h4 {
   justify-content: space-between;
   align-items: center;
   border-bottom: 1px solid var(--border-color);
-  background-color: rgba(11, 15, 25, 0.8);
+  background-color: var(--bg-header);
   backdrop-filter: var(--glass-blur);
   z-index: 10;
+  transition: background-color var(--transition-normal), border-color var(--transition-normal);
 }
 .title-section h2 {
   font-size: 1.4rem;
@@ -145,7 +200,7 @@ h1, h2, h3, h4 {
 }
 .view-switchers {
   display: flex;
-  background-color: rgba(255, 255, 255, 0.05);
+  background-color: var(--bg-switcher);
   padding: 4px;
   border-radius: var(--radius-md);
   border: 1px solid var(--border-color);
@@ -167,7 +222,7 @@ h1, h2, h3, h4 {
 }
 .btn-view.active {
   background-color: var(--color-primary);
-  color: var(--text-main);
+  color: var(--text-inverse);
   box-shadow: var(--shadow-sm);
 }
 .btn-view:not(.active):hover {
@@ -207,7 +262,7 @@ h1, h2, h3, h4 {
 
 .btn-primary {
   background-color: var(--color-primary);
-  color: var(--text-main);
+  color: var(--text-inverse);
   box-shadow: 0 4px 12px rgba(59, 130, 246, 0.25);
 }
 .btn-primary:hover {
@@ -216,12 +271,12 @@ h1, h2, h3, h4 {
   box-shadow: var(--shadow-glow);
 }
 .btn-secondary {
-  background-color: rgba(255, 255, 255, 0.05);
+  background-color: var(--bg-switcher);
   border-color: var(--border-color);
   color: var(--text-main);
 }
 .btn-secondary:hover {
-  background-color: rgba(255, 255, 255, 0.1);
+  background-color: var(--bg-badge-checked);
   border-color: rgba(255, 255, 255, 0.2);
 }
 .btn-danger {
@@ -257,7 +312,7 @@ h1, h2, h3, h4 {
   background-color: rgba(255, 255, 255, 0.05);
 }
 .btn-icon {
-  background: rgba(255, 255, 255, 0.05);
+  background: var(--bg-switcher);
   border: 1px solid var(--border-color);
   color: var(--text-main);
   width: 36px;
@@ -266,7 +321,31 @@ h1, h2, h3, h4 {
   border-radius: var(--radius-sm);
 }
 .btn-icon:hover {
-  background-color: rgba(255, 255, 255, 0.1);
+  background-color: var(--bg-badge-checked);
+}
+
+/* ปุ่มสลับโหมดสีสว่าง/มืด (พรีเมียมสไตล์) */
+.btn-theme-toggle {
+  background-color: var(--bg-switcher);
+  border: 1px solid var(--border-color);
+  color: var(--text-main);
+  width: 100%;
+  padding: 10px;
+  font-family: var(--font-display);
+  font-weight: 500;
+  font-size: 0.85rem;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  transition: var(--transition-normal);
+}
+.btn-theme-toggle:hover {
+  background-color: var(--bg-badge-checked);
+  border-color: var(--color-primary);
+  color: var(--color-primary);
 }
 
 /* เอฟเฟกต์ Ripple */
@@ -296,13 +375,14 @@ h1, h2, h3, h4 {
 
 /* Sidebar Widgets */
 .admin-badge-container {
-  background-color: rgba(255, 255, 255, 0.02);
+  background-color: var(--bg-badge-container);
   padding: 0.65rem;
   border-radius: var(--radius-md);
   border: 1px solid var(--border-color);
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
+  transition: background-color var(--transition-normal);
 }
 .admin-badge {
   display: flex;
@@ -362,7 +442,7 @@ h1, h2, h3, h4 {
   font-size: 0.9rem;
   font-weight: 600;
   color: var(--text-main);
-  background-color: rgba(255, 255, 255, 0.02);
+  background-color: var(--bg-badge-container);
   padding: 8px;
   border-radius: var(--radius-sm);
   border: 1px solid var(--border-color);
@@ -376,7 +456,7 @@ h1, h2, h3, h4 {
   padding: 10px 36px 10px 12px;
   border-radius: var(--radius-sm);
   border: 1px solid var(--border-color);
-  background-color: rgba(0, 0, 0, 0.2);
+  background-color: var(--bg-input);
   color: var(--text-main);
   font-family: var(--font-body);
   font-size: 0.85rem;
@@ -385,7 +465,7 @@ h1, h2, h3, h4 {
 .search-box input:focus {
   outline: none;
   border-color: var(--border-focus);
-  background-color: rgba(0, 0, 0, 0.4);
+  background-color: var(--bg-card);
   box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
 }
 .search-box .search-icon {
@@ -485,7 +565,7 @@ h1, h2, h3, h4 {
   flex-direction: column;
   gap: 6px;
   min-height: 95px;
-  transition: var(--transition-fast);
+  transition: var(--transition-normal), transform var(--transition-fast);
   position: relative;
   overflow: hidden;
 }
@@ -497,12 +577,12 @@ h1, h2, h3, h4 {
 }
 .day-cell.today {
   border-color: rgba(59, 130, 246, 0.6);
-  background: radial-gradient(circle at top right, rgba(59, 130, 246, 0.1), transparent 70%), var(--bg-card);
+  background: radial-gradient(circle at top right, rgba(59, 130, 246, 0.08), transparent 70%), var(--bg-card);
   box-shadow: 0 0 10px rgba(59, 130, 246, 0.15);
 }
 .day-cell.today .day-number {
   background-color: var(--color-primary);
-  color: var(--text-main);
+  color: var(--text-inverse);
   border-radius: 50%;
   width: 22px;
   height: 22px;
@@ -576,7 +656,7 @@ h1, h2, h3, h4 {
   background-color: rgba(20, 184, 166, 0.12);
 }
 .chip-multi {
-  border-left-color: #f3f4f6;
+  border-left-color: var(--text-main);
   background: linear-gradient(90deg, rgba(255,255,255,0.05) 0%, rgba(255,255,255,0.01) 100%);
 }
 .chip-categories-dots {
@@ -634,7 +714,7 @@ h1, h2, h3, h4 {
 
 /* กล่องโมดอล */
 .modal-card {
-  background-color: #121824;
+  background-color: var(--bg-modal);
   border: 1px solid var(--border-color);
   border-radius: var(--radius-lg);
   width: 92%;
@@ -644,6 +724,7 @@ h1, h2, h3, h4 {
   flex-direction: column;
   box-shadow: var(--shadow-lg);
   overflow: hidden;
+  transition: background-color var(--transition-normal);
 }
 .modal-card-sm { max-width: 400px; }
 .modal-card-lg { max-width: 710px; }
@@ -724,7 +805,7 @@ h1, h2, h3, h4 {
 .form-control {
   width: 100%;
   padding: 10px 14px;
-  background-color: rgba(0, 0, 0, 0.2);
+  background-color: var(--bg-input);
   border: 1px solid var(--border-color);
   border-radius: var(--radius-sm);
   color: var(--text-main);
@@ -735,7 +816,7 @@ h1, h2, h3, h4 {
 .form-control:focus {
   outline: none;
   border-color: var(--border-focus);
-  background-color: rgba(0, 0, 0, 0.4);
+  background-color: var(--bg-card);
   box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
 }
 textarea.form-control {
@@ -778,13 +859,13 @@ textarea.form-control {
   font-family: var(--font-display);
   font-size: 0.82rem;
   font-weight: 500;
-  background-color: rgba(255, 255, 255, 0.01);
+  background-color: var(--bg-badge-container);
   color: var(--text-muted);
   transition: var(--transition-fast);
 }
 .checkbox-badge-item input[type="checkbox"]:checked + .checkbox-badge-label {
   color: var(--text-main);
-  background-color: rgba(255, 255, 255, 0.03);
+  background-color: var(--bg-badge-checked);
 }
 
 .checkbox-badge-item input[type="checkbox"]:checked + .cat-photo-border {
@@ -820,7 +901,7 @@ textarea.form-control {
   border-radius: var(--radius-md);
   padding: 1.25rem;
   text-align: center;
-  background-color: rgba(0, 0, 0, 0.12);
+  background-color: rgba(0, 0, 0, 0.05);
   cursor: pointer;
   position: relative;
   transition: var(--transition-normal);
@@ -867,7 +948,7 @@ textarea.form-control {
   display: flex;
   align-items: center;
   gap: 0.75rem;
-  background-color: rgba(255, 255, 255, 0.03);
+  background-color: var(--bg-badge-checked);
   padding: 8px 12px;
   border-radius: var(--radius-sm);
   border: 1px solid var(--border-color);
@@ -984,7 +1065,7 @@ textarea.form-control {
   display: flex;
   flex-direction: column;
   gap: 0.2rem;
-  background-color: rgba(255, 255, 255, 0.02);
+  background-color: var(--bg-badge-container);
   padding: 8px 12px;
   border-radius: var(--radius-sm);
   border: 1px solid var(--border-color);
@@ -1014,15 +1095,15 @@ textarea.form-control {
 .detail-description-text {
   font-size: 0.85rem;
   line-height: 1.5;
-  color: #e5e7eb;
-  background-color: rgba(0, 0, 0, 0.15);
+  color: var(--text-main);
+  background-color: var(--bg-desc);
   padding: 10px;
   border-radius: var(--radius-sm);
   white-space: pre-wrap;
 }
 
 .file-preview-card {
-  background-color: rgba(255, 255, 255, 0.02);
+  background-color: var(--bg-preview);
   border: 1px solid var(--border-color);
   border-radius: var(--radius-md);
   padding: 10px;
@@ -1036,7 +1117,7 @@ textarea.form-control {
   display: inline-flex;
   align-items: center;
   gap: 0.5rem;
-  background-color: rgba(255, 255, 255, 0.05);
+  background-color: var(--bg-switcher);
   border: 1px solid var(--border-color);
   padding: 8px 14px;
   border-radius: var(--radius-md);
@@ -1092,7 +1173,7 @@ textarea.form-control {
   z-index: 1000;
 }
 .toast {
-  background-color: #1f2937;
+  background-color: var(--bg-sidebar);
   border: 1px solid var(--border-color);
   border-radius: var(--radius-md);
   padding: 12px 18px;
@@ -1195,7 +1276,7 @@ textarea.form-control {
   display: flex;
   align-items: center;
   gap: 1rem;
-  transition: var(--transition-fast);
+  transition: var(--transition-normal);
 }
 .stat-card:hover {
   transform: translateY(-2px);
@@ -1257,7 +1338,7 @@ textarea.form-control {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  background-color: rgba(0, 0, 0, 0.15);
+  background-color: rgba(0, 0, 0, 0.05);
   padding: 6px 10px;
   border-radius: var(--radius-sm);
   font-size: 0.75rem;
@@ -1281,7 +1362,7 @@ textarea.form-control {
 
 /* Upcoming List */
 .upcoming-section {
-  background-color: rgba(0, 0, 0, 0.15);
+  background-color: var(--bg-upcoming);
   border: 1px solid var(--border-color);
   border-radius: var(--radius-md);
   padding: 1.25rem;
@@ -1315,7 +1396,7 @@ textarea.form-control {
   justify-content: space-between;
   align-items: center;
   cursor: pointer;
-  transition: var(--transition-fast);
+  transition: var(--transition-normal);
 }
 .upcoming-card:hover {
   border-color: var(--color-primary);
