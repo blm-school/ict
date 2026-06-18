@@ -108,20 +108,7 @@
     </aside>
 
     <!-- ส่วนเนื้อหาปฏิทินหลัก (Main Workspace) -->
-    <main class="main-content">
-      <header class="calendar-header">
-        <div class="title-section">
-          <h2 id="calendar-title-display">...</h2>
-        </div>
-        <div class="view-switchers">
-          <button id="view-month-btn" class="btn btn-view active ripple" onclick="switchView('month')">
-            <i class="fa-solid fa-calendar-days"></i> รายเดือน
-          </button>
-          <button id="view-week-btn" class="btn btn-view ripple" onclick="switchView('week')">
-            <i class="fa-solid fa-calendar-week"></i> รายสัปดาห์
-          </button>
-        </div>
-      </header>      
+    <main class="main-content">          
       
       <!-- ปุ่มหลักเพิ่มกิจกรรม -->      
       <div class="calendar-viewport">
@@ -189,7 +176,23 @@
           </div>
         </section>
 
-        <br><hr><br>
+        <br><hr>
+        
+        <!-- ส่วนหัว เดือน สัปดาห์ (Header) -->        
+        <header class="calendar-header">
+          <div class="title-section">
+            <h2 id="calendar-title-display">มิถุนายน 2569</h2>
+          </div>
+          <div class="view-switchers">
+            <button id="view-month-btn" class="btn btn-view active ripple" onclick="switchView('month')">
+              <i class="fa-solid fa-calendar-days"></i> รายเดือน
+            </button>
+            <button id="view-week-btn" class="btn btn-view ripple" onclick="switchView('week')">
+              <i class="fa-solid fa-calendar-week"></i> รายสัปดาห์
+            </button>
+          </div>
+        </header>
+        <br>
         <!-- แถวแสดงวันจันทร์ - อาทิตย์ -->
         <div class="weekday-header-grid">
           <div>อาทิตย์</div>
