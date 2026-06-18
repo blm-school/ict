@@ -426,7 +426,6 @@
   /**
    * โหลดข้อมูลกิจกรรมทั้งหมดด้วย Fetch API
    */
-// เปลี่ยนฟังก์ชันเดิมใน index.html (ประมาณบรรทัด 430+) เป็นชุดนี้ได้เลยครับ
 async function loadEventsFromServer() {
     try {
         console.log("📅 [Front-end] กำลังเรียกข้อมูลจาก Google Sheets...");
@@ -436,29 +435,74 @@ async function loadEventsFromServer() {
 
         const result = await response.json();
         
-        // ตรวจสอบว่าดึงสำเร็จและมีข้อมูลส่งกลับมาไหม
         if (result.success && Array.isArray(result.data)) {
-            console.log(`✅ [Front-end] ดึงข้อมูลสำเร็จ! มีทั้งหมด ${result.data.length} รายการ`);
-            console.log("📦 ข้อมูลที่ได้รับชัวร์ๆ:", result.data);
+            console.log("📦 ข้อมูลดิบที่ส่งมาจาก GAS:", result.data);
 
-            // 💡 นำข้อมูลไปใช้ต่อได้ทันที คีย์จะเป็นตัวเล็กตรงๆ (id, title, start, end)
-            // สมมติว่าตัวแปรเก็บข้อมูลปฏิทินของหน้าเว็บคุณชื่อ calendarEvents 
-            window.calendarEvents = result.data; 
+            const cleanedEvents = [];
+
+            // 💡 เริ่มลูปแปลงข้อมูล (ข้าม Object แรกที่เป็นหัวตารางไปเลย)
+            for (let i = 0; i < result.data.length; i++) {
+                const rawEvent = result.data[i];
+                
+                // ข้ามแถวที่เป็นหัวตารางซ้ำซ้อนออกไป
+                if (rawEvent["ID"] === "ID" || rawEvent["Title"] === "Title") continue;
+
+                // 💡 แปลงวันที่ภาษาไทย "18 มิถุนายน 2569 เวลา 09:00 น." ให้เป็นมาตรฐาน ค.ศ. (2026-06-18T09:00:00)
+                const standardStart = parseThaiDateToISO(rawEvent["Start Date"]);
+                const standardEnd = parseThaiDateToISO(rawEvent["End Date"]);
+
+                // 💡 บังคับจัดรูปแบบใส่คีย์ตัวพิมพ์เล็กตามที่ระบบปฏิทินหน้าเว็บต้องการ
+                cleanedEvents.push({
+                    id: rawEvent["ID"] || '',
+                    title: rawEvent["Categories"] || 'กิจกรรมไม่มีชื่อ', // จาก Log ช่อง Categories เก็บคำว่า "ถ่ายภาพ" เอาไว้ เลยสลับมาใช้ตรงนี้เป็นชื่องานครับ
+                    start: standardStart || rawEvent["Start Date"],
+                    end: standardEnd || rawEvent["End Date"],
+                    description: rawEvent["Description"] || ''
+                });
+            }
+
+            console.log(`✅ [Front-end] แปลงข้อมูลไทยเป็นสากลสำเร็จ! พร้อมวาด ${cleanedEvents.length} รายการ`);
+            console.log("✨ ข้อมูลคลีนๆ ที่จะป้อนเข้าปฏิทิน:", cleanedEvents);
+
+            // ส่งข้อมูลที่คลีนแล้วเข้าตัวแปรปฏิทินของหน้าเว็บคุณ
+            window.calendarEvents = cleanedEvents; 
 
             // สั่งวาดปฏิทินใหม่ด้วยข้อมูลชุดนี้
             if (typeof renderCalendar === "function") {
-                renderCalendar(result.data); 
+                renderCalendar(cleanedEvents); 
             } else if (typeof updateCalendar === "function") {
                 updateCalendar();
             }
             
         } else {
             console.warn("⚠️ API ส่งค่ากลับมาไม่สำเร็จ:", result.message);
-            loadLocalEvents(); // สลับไปใช้ Local Storage สำรอง (ตามระบบเดิมของคุณ)
+            loadLocalEvents();
         }
     } catch (error) {
         console.error("❌ พังตอนรับข้อมูลมาวาดปฏิทิน:", error);
-        loadLocalEvents(); // สลับไปใช้ Local Storage สำรอง (ตามระบบเดิมของคุณ)
+        loadLocalEvents();
+    }
+}
+
+// 🛠️ ฟังก์ชันเสริมสำหรับแปลงข้อความวันเวลาภาษาไทยยัดเข้าปฏิทินในหน้าเว็บ
+function parseThaiDateToISO(thaiStr) {
+    if (!thaiStr) return "";
+    try {
+        const months = {"มกราคม":"01","กุมภาพันธ์":"02","มีนาคม":"03","เมษายน":"04","พฤษภาคม":"05","มิถุนายน":"06","กรกฎาคม":"07","สิงหาคม":"08","กันยายน":"09","ตุลาคม":"10","พฤศจิกายน":"11","ธันวาคม":"12"};
+        // ตัดคำว่า เวลา และ น. ออก แล้วตัดแบ่งช่องว่าง
+        let cleanStr = thaiStr.replace("เวลา", "").replace("น.", "").trim();
+        let parts = cleanStr.split(/\s+/);
+        
+        if (parts.length < 3) return thaiStr;
+
+        let day = parts[0].padStart(2, '0');
+        let month = months[parts[1]];
+        let year = String(parseInt(parts[2]) - 543); // แปลง พ.ศ. 2569 เป็น ค.ศ. 2026
+        let time = parts[3] ? parts[3].trim() : "00:00";
+
+        return `${year}-${month}-${day}T${time}:00`;
+    } catch (e) {
+        return thaiStr;
     }
 }
 
