@@ -48,11 +48,6 @@
         </button>
       </div>
 
-      <!-- ปุ่มหลักเพิ่มกิจกรรม -->
-      <button class="btn btn-primary btn-block btn-large" onclick="openAddEventModal()">
-        <i class="fa-solid fa-plus"></i> เพิ่มกิจกรรมใหม่
-      </button>
-
       <!-- ส่วนควบคุมการนำทางวันที่ในปฏิทิน -->
       <div class="sidebar-section">
         <h3><i class="fa-solid fa-compass"></i> นำทาง</h3>
@@ -126,7 +121,11 @@
         </div>
       </header>      
       
+      <!-- ปุ่มหลักเพิ่มกิจกรรม -->      
       <div class="calendar-viewport">
+        <button class="btn btn-block btn-large admin-badge-logged" onclick="openAddEventModal()">
+          <i class="fa-solid fa-plus"></i> เพิ่มกิจกรรมใหม่
+        </button>
 
         <!-- ==========================================
              แดชบอร์ดสรุปงานด้านล่าง (Dashboard Section)
