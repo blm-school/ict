@@ -1,9 +1,10 @@
 // ========================================================================== 
-// External Website Calendar JS Engine (API Connected)
+// External Website Calendar JS Engine (API Connected + LocalStorage Cache)
 // ==========================================================================
 
 // 🔴 นำ URL Web App ของ Google Apps Script มาใส่ที่นี่ 🔴
 const API_URL = 'https://script.google.com/macros/s/AKfycbw5ufgADxQXqvm40HfAmKfoE4d5S1DvddgZ5ZgXIQwGYhFng5iKz3Ykhuvps6c1Kygt/exec';
+const CACHE_KEY = 'gas_calendar_events_cache'; // คีย์สำหรับเก็บแคชใน LocalStorage
 
 // Global Application State
 let currentDate = new Date();
@@ -31,7 +32,7 @@ document.addEventListener('DOMContentLoaded', function () {
  */
 function initApp() {
   console.log("🚀 [System] เริ่มต้นระบบปฏิทินงานประสานผ่าน API...");
-  showLoader(true, 'กำลังเชื่อมต่อฐานข้อมูล...');
+  initTheme();
 
   const flatpickrConfig = {
     enableTime: true,
@@ -59,51 +60,97 @@ function initApp() {
     setAdminState(true, savedPwd);
   }
 
-  loadEventsFromServer();
+  // เข้าเว็บครั้งแรก: โหลดแคชมาแสดงทันที + ดึงข้อมูลสดมาอัปเดตแคชเบื้องหลัง
+  loadEventsFromServer(false, true);
   setupDragAndDrop();
 }
 
 /**
- * 🌐 GET API: โหลดข้อมูลกิจกรรมทั้งหมดจาก Server
+ * บันทึกข้อมูลอาร์เรย์ events ปัจจุบันลงแคช LocalStorage และสั่งวาดตารางใหม่ทันที
  */
-function loadEventsFromServer() {
-  console.log("🌐 [API] 1. เริ่มกระบวนการดึงข้อมูลจาก API: ", API_URL);
-  showLoader(true, 'กำลังโหลดตารางงาน...');
+function saveAndRenderCache() {
+  localStorage.setItem(CACHE_KEY, JSON.stringify(events));
+  filterEvents();
+}
+
+/**
+ * 🌐 GET API: โหลดข้อมูลกิจกรรมทั้งหมดจาก Server
+ * @param {boolean} forceRefresh - สั่งดึงข้อมูลใหม่ด่วน (ใช้ตอนกดรีเฟรช)
+ * @param {boolean} isInitialLoad - สั่งทำงานตอนเข้าเว็บครั้งแรก (แสดงแคชก่อน แล้วยิง API อัปเดตแคชตามหลัง)
+ */
+function loadEventsFromServer(forceRefresh = false, isInitialLoad = false) {
+  const cachedData = localStorage.getItem(CACHE_KEY);
+
+  // 1. ถ้าเป็นการเข้าเว็บครั้งแรก และมีแคชเดิมอยู่ -> แสดงผลจากแคชทันทีเพื่อความเร็ว
+  if (isInitialLoad && cachedData) {
+    try {
+      events = JSON.parse(cachedData);
+      console.log(`⚡ [Cache] แสดงผลจาก LocalStorage ทันที (${events.length} รายการ)`);
+      filterEvents();
+    } catch (e) {
+      console.error("🚨 [Cache] แคชเดิมเสียหาย:", e);
+      localStorage.removeItem(CACHE_KEY);
+    }
+  } 
+  // 2. ถ้าไม่ใช่การเข้าเว็บครั้งแรก และไม่ได้สั่ง forceRefresh -> ใช้แคชที่มีแล้วจบทำงาน
+  else if (!forceRefresh && cachedData) {
+    try {
+      events = JSON.parse(cachedData);
+      console.log(`⚡ [Cache] โหลดข้อมูลจาก LocalStorage สำเร็จ`);
+      filterEvents();
+      return;
+    } catch (e) {
+      localStorage.removeItem(CACHE_KEY);
+    }
+  }
+
+  // 3. ยิง API ดึงข้อมูลสดเพื่ออัปเดตแคช
+  console.log("🌐 [API] กำลังดึงข้อมูลสดจาก Server เพื่ออัปเดตแคช: ", API_URL);
+
+  if (!cachedData || forceRefresh) {
+    showLoader(true, 'กำลังอัปเดตตารางงาน...');
+  }
 
   fetch(`${API_URL}?action=getEvents`)
     .then(response => {
-      console.log("📥 [API] 2. ได้รับการตอบกลับจาก Server, HTTP Status:", response.status);
+      console.log("📥 [API] ได้รับการตอบกลับจาก Server, HTTP Status:", response.status);
       return response.json();
     })
     .then(result => {
-      console.log("📦 [API] 3. แกะกล่องข้อมูล JSON ที่ได้จาก Server:", result);
       showLoader(false);
 
       if (result.status === 'success') {
-        console.log(`✅ [API] 4. โหลดข้อมูลสำเร็จ พบกิจกรรมทั้งหมด ${result.data.length} รายการ`);
         events = result.data;
-
-        // --- ส่วนพิเศษสำหรับ Debug การแปลงวันที่ (เช็ค 3 รายการแรก) ---
-        console.log("🕵️‍♂️ [Debug] ตรวจสอบการอ่านวันที่ (เช็คจาก 3 รายการแรก):");
-        events.slice(0, 3).forEach((evt, idx) => {
-          console.log(`   [รายการที่ ${idx + 1}] ID: ${evt.ID} | ชื่อ: ${evt.Title}`);
-          console.log(`     - Start Date (ดิบจากชีต): "${evt['Start Date']}" => แปลงผลลัพธ์ได้:`, parseSheetDate(evt['Start Date']));
-          console.log(`     - End Date (ดิบจากชีต): "${evt['End Date']}" => แปลงผลลัพธ์ได้:`, parseSheetDate(evt['End Date']));
-        });
-        // --------------------------------------------------------
+        
+        // บันทึกข้อมูลล่าสุดทับลง LocalStorage Cache
+        localStorage.setItem(CACHE_KEY, JSON.stringify(events));
+        console.log(`✅ [API] อัปเดตแคชสำเร็จ (${events.length} รายการ)`);
 
         filterEvents();
-        showToast('โหลดข้อมูลกิจกรรมเรียบร้อยแล้ว', 'success');
+
+        if (forceRefresh) {
+          showToast('อัปเดตข้อมูลตารางงานล่าสุดแล้ว', 'success');
+        }
       } else {
         console.error("❌ [API] Server แจ้งเตือน Error:", result.message);
         throw new Error(result.message);
       }
     })
     .catch(err => {
-      console.error("🚨 [API] เกิดข้อผิดพลาดร้ายแรงในการเชื่อมต่อ:", err);
+      console.error("🚨 [API Error]:", err);
       showLoader(false);
-      showToast('การเชื่อมต่อล้มเหลว: ' + err.message, 'error');
+      if (!cachedData) {
+        showToast('การเชื่อมต่อล้มเหลว: ' + err.message, 'error');
+      }
     });
+}
+
+/**
+ * ฟังก์ชันสำหรับกดปุ่มรีเฟรชข้อมูลบนหน้าเว็บด้วยตนเอง
+ */
+function refreshCalendarData() {
+  console.log("🔄 [Manual Refresh] ผู้ใช้กดปุ่มรีเฟรชข้อมูล...");
+  loadEventsFromServer(true);
 }
 
 function showLoader(show, text) {
@@ -211,7 +258,6 @@ function parseSheetDate(dateStr) {
   let cleanStr = String(dateStr).replace(/\(.*?\)/g, '').trim();
 
   // 2. ลองให้ Javascript ประมวลผลแบบอัตโนมัติ 
-  // (หลังจากตัดวงเล็บทิ้ง จะเหลือแค่ "Thu Jun 18 2026 13:00:00 GMT+0700" ซึ่งอ่านได้ 100%)
   const autoDate = new Date(cleanStr);
   if (!isNaN(autoDate.getTime())) {
     return autoDate;
@@ -543,12 +589,10 @@ function openDetailModal(eventObj) {
 
   const timestampEl = document.getElementById('detail-timestamp');
   if (timestampEl) {
-    // เช็กค่าจากคอลัมน์ Created At หรือ Timestamp แล้วนำไปจัดรูปแบบเป็นภาษาไทย
     const rawTime = eventObj.Timestamp;
     timestampEl.innerText = rawTime ? formatDisplayDate(rawTime) : 'ไม่มีข้อมูล';
   }
 
-  // ดึง Element แจ้งเตือน (หรือสร้างใหม่ขึ้นมาแสดง)
   const warningEl = document.getElementById('detail-warning-notice');
 
   const startDateObj = parseSheetDate(eventObj['Start Date']);
@@ -556,11 +600,9 @@ function openDetailModal(eventObj) {
   const timestampObj = parseSheetDate(rawTime);
 
   if (startDateObj && timestampObj) {
-    // คำนวณส่วนต่างเวลาเป็นวัน (Millisecond -> Days)
     const diffInMs = startDateObj - timestampObj;
     const diffInDays = diffInMs / (1000 * 60 * 60 * 24);
 
-    // ถ้าห่างกันน้อยกว่า 3 วัน (หรือจองย้อนหลัง)
     if (diffInDays < 3) {
       if (warningEl) {
         warningEl.innerText = '⚠️ กรุณาติดต่อล่วงหน้าอย่างน้อย 3 วัน';
@@ -651,18 +693,25 @@ function closeDetailModal() {
 }
 
 // ==========================================================================
-// Admin Action Flows & API Submissions
+// Admin Action Flows & API Submissions (Optimistic UI Update)
 // ==========================================================================
 function triggerDeleteEvent() {
   if (!selectedEvent) return;
   if (!confirm('คุณแน่ใจว่าต้องการลบกิจกรรม "' + selectedEvent.Title + '" ใช่หรือไม่?')) return;
 
-  showLoader(true, 'กำลังลบกิจกรรมผ่าน API...');
-  closeDetailModal();
+  const deletedId = selectedEvent.ID;
+  const backupEvents = JSON.parse(JSON.stringify(events)); // สำรองข้อมูลเดิมไว้เผื่อ Rollback
 
+  // ⚡ 1. Instant Update: ลบรายการออก และเซฟแคชเรนเดอร์หน้าจอทันที (ไม่ต้องขึ้น Loader)
+  events = events.filter(evt => String(evt.ID) !== String(deletedId));
+  saveAndRenderCache();
+  closeDetailModal();
+  showToast('ลบรายการกิจกรรมเรียบร้อยแล้ว', 'success');
+
+  // 🌐 2. Background Sync: ส่งคำสั่งลบไป GAS เบื้องหลัง
   const requestBody = {
     action: 'deleteEvent',
-    eventId: selectedEvent.ID,
+    eventId: deletedId,
     adminPassword: adminPassword
   };
 
@@ -674,18 +723,19 @@ function triggerDeleteEvent() {
   })
     .then(res => res.json())
     .then(result => {
-      showLoader(false);
       if (result.status === 'success') {
-        showToast('ลบรายการกิจกรรมเรียบร้อยแล้ว', 'success');
-        loadEventsFromServer();
+        console.log(`✅ [Background Sync] ลบกิจกรรม ID: ${deletedId} บน GAS เรียบร้อยแล้ว`);
       } else {
         throw new Error(result.message);
       }
     })
     .catch(err => {
-      showLoader(false);
-      showToast('ล้มเหลว: ' + err.message, 'error');
-      if (err.message.includes('รหัสผ่าน')) logoutAdmin();
+      console.error("🚨 [Background Sync ล้มเหลว]:", err);
+      // 🔄 Rollback คืนค่าข้อมูลเดิมกลับเข้าแคชเมื่อเกิดข้อผิดพลาด
+      events = backupEvents;
+      saveAndRenderCache();
+      showToast('การลบล้มเหลว (คืนค่าตารางเดิม): ' + err.message, 'error');
+      if (err.message && err.message.includes('รหัสผ่าน')) logoutAdmin();
     });
 }
 
@@ -733,7 +783,7 @@ function markAttachmentForDeletion() {
 }
 
 // ==========================================================================
-// Forms Submissions Engine (POST to API)
+// Forms Submissions Engine (POST to API with Optimistic UI Update)
 // ==========================================================================
 function openAddEventModal() {
   document.getElementById('form-event-id').value = '';
@@ -835,6 +885,8 @@ function handleFormSubmit(e) {
   }
 
   const eventId = document.getElementById('form-event-id').value;
+  const isEdit = !!eventId;
+
   const eventData = {
     title: document.getElementById('form-title-input').value.trim(),
     startDate: formatToSheetDate(startDateObj),
@@ -845,17 +897,53 @@ function handleFormSubmit(e) {
     president: document.getElementById('form-president-input') ? document.getElementById('form-president-input').value.trim() : ''
   };
 
-  closeFormModal();
-  showLoader(true, eventId ? 'กำลังแก้ไขข้อมูลผ่าน API...' : 'กำลังบันทึกข้อมูลผ่าน API...');
+  const backupEvents = JSON.parse(JSON.stringify(events)); // สำรองข้อมูลเดิมเผื่อ Rollback
+  const tempId = eventId || ('TEMP_' + Date.now()); // ID ชั่วคราวกรณีสร้างใหม่
 
-  // สร้าง Payload เพื่อส่งไปยัง Backend
+  // ⚡ 1. Instant Update: ปรับอาร์เรย์ events + บันทึกแคช + เรนเดอร์ตารางทันที
+  if (isEdit) {
+    const idx = events.findIndex(evt => String(evt.ID) === String(eventId));
+    if (idx !== -1) {
+      events[idx] = {
+        ...events[idx],
+        Title: eventData.title,
+        'Start Date': eventData.startDate,
+        'End Date': eventData.endDate,
+        Categories: eventData.categories,
+        Description: eventData.description,
+        Coordinator: eventData.coordinator,
+        President: eventData.president,
+        'Attachment URL': selectedFile ? selectedFile.rawUrl : (deleteExistingAttachment ? '' : events[idx]['Attachment URL'])
+      };
+    }
+  } else {
+    const newEventObj = {
+      ID: tempId,
+      Title: eventData.title,
+      'Start Date': eventData.startDate,
+      'End Date': eventData.endDate,
+      Categories: eventData.categories,
+      Description: eventData.description,
+      Coordinator: eventData.coordinator,
+      President: eventData.president,
+      Timestamp: formatToSheetDate(new Date()),
+      'Attachment URL': selectedFile ? selectedFile.rawUrl : ''
+    };
+    events.unshift(newEventObj);
+  }
+
+  saveAndRenderCache();
+  closeFormModal();
+  showToast(isEdit ? 'แก้ไขข้อมูลกิจกรรมเรียบร้อยแล้ว' : 'เพิ่มกิจกรรมใหม่เรียบร้อยแล้ว', 'success');
+
+  // 🌐 2. Background Sync: ส่งข้อมูลบันทึกลง GAS เบื้องหลัง
   const requestBody = {
-    action: eventId ? 'updateEvent' : 'addEvent',
+    action: isEdit ? 'updateEvent' : 'addEvent',
     eventData: eventData,
     fileData: selectedFile || null
   };
 
-  if (eventId) {
+  if (isEdit) {
     requestBody.adminPassword = adminPassword;
     requestBody.eventData.id = eventId;
     requestBody.eventData.deleteExistingAttachment = deleteExistingAttachment;
@@ -864,23 +952,35 @@ function handleFormSubmit(e) {
   fetch(API_URL, {
     method: 'POST',
     redirect: 'follow',
-    headers: { 'Content-Type': 'text/plain;charset=utf-8' }, // กัน CORS Preflight สำหรับ GAS
+    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
     body: JSON.stringify(requestBody)
   })
     .then(res => res.json())
     .then(result => {
-      showLoader(false);
       if (result.status === 'success') {
-        showToast(eventId ? 'แก้ไขข้อมูลกิจกรรมสำเร็จ' : 'เพิ่มกิจกรรมใหม่สำเร็จ', 'success');
-        loadEventsFromServer();
+        console.log(`✅ [Background Sync] บันทึกข้อมูลลง GAS สำเร็จ`);
+
+        // ถ้าเป็นการสร้างรายการใหม่ สลับ TEMP ID เป็น ID จริงจาก Google Sheet
+        if (!isEdit && result.data && result.data.ID) {
+          const target = events.find(evt => evt.ID === tempId);
+          if (target) {
+            target.ID = result.data.ID;
+            if (result.data['Attachment URL']) target['Attachment URL'] = result.data['Attachment URL'];
+            if (result.data['Attachment ID']) target['Attachment ID'] = result.data['Attachment ID'];
+            saveAndRenderCache();
+          }
+        }
       } else {
         throw new Error(result.message);
       }
     })
     .catch(err => {
-      showLoader(false);
-      showToast('บันทึกล้มเหลว: ' + err.message, 'error');
-      if (err.message.includes('รหัสผ่าน')) logoutAdmin();
+      console.error("🚨 [Background Sync ล้มเหลว]:", err);
+      // 🔄 Rollback ข้อมูลเดิมถ้าเกิด Error
+      events = backupEvents;
+      saveAndRenderCache();
+      showToast('การบันทึกล้มเหลว (คืนค่าตารางเดิม): ' + err.message, 'error');
+      if (err.message && err.message.includes('รหัสผ่าน')) logoutAdmin();
     });
 }
 
@@ -1005,20 +1105,14 @@ function updateDashboard() {
   }
 }
 
-
-
-
-
-
-
-
-
+// ==========================================================================
+// Theme Management Engine
+// ==========================================================================
 /**
  * ฟังก์ชันเริ่มต้นธีม (เรียกใช้เมื่อโหลดหน้าเว็บเสร็จ)
  */
 function initTheme() {
   const savedTheme = localStorage.getItem('theme');
-  // จะเปิดโหมดมืด เฉพาะเมื่อผู้ใช้เคยเปิดทิ้งไว้ก่อนหน้านี้เท่านั้น นอกนั้นเริ่มด้วยโหมดสว่างเสมอ
   const isDark = (savedTheme === 'dark');
 
   if (isDark) {
@@ -1036,10 +1130,7 @@ function initTheme() {
  */
 function toggleTheme() {
   const isDark = document.body.classList.toggle('dark-mode');
-
-  // บันทึกตัวเลือกเก็บไว้ในเบราว์เซอร์
   localStorage.setItem('theme', isDark ? 'dark' : 'light');
-
   updateThemeButtonUI(isDark);
   console.log(`🌓 [Theme] สลับธีมผู้ใช้เป็น: ${isDark ? 'โหมดมืด' : 'โหมดสว่าง'}`);
 }
@@ -1057,5 +1148,3 @@ function updateThemeButtonUI(isDark) {
     btn.innerHTML = '<i class="fa-solid fa-moon"></i> โหมดมืด';
   }
 }
-
-// และเพิ่มการเรียกใช้ initTheme(); ไว้ในส่วนของการเริ่มระบบงานเช่นเคยครับ
