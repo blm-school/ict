@@ -239,7 +239,11 @@ h1, h2, h3, h4 {
 
 /* ✨ เพิ่มอีโมจิตกแต่ง Title */
 .title-section h2::before {
-  content: '📅 ';
+  content: "\f073"; /* รหัส Unicode ของ calendar-days ใน Font Awesome */
+  font-family: "Font Awesome 6 Free"; /* หรือ "FontAwesome" ตามเวอร์ชันที่ใช้งาน */
+  font-weight: 900; /* จำเป็นสำหรับไอคอนแบบ Solid (fa-solid) */
+  margin-right: 8px; /* เว้นระยะห่างระหว่างไอคอนกับข้อความ */
+  color: #your-color; /* (ถ้าต้องการ) ใส่สีให้กับไอคอน */
 }
 .title-section h2 {
   font-size: 1.5rem;
