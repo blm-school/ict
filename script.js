@@ -1125,6 +1125,7 @@ async function handleFormSubmit(e) {
       if (result.status === 'success') {
         console.log(`✅ [Background Sync] บันทึกข้อมูลลง GAS สำเร็จ`);
         showToast(isEdit ? 'แก้ไขข้อมูลกิจกรรมเรียบร้อยแล้ว' : 'เพิ่มกิจกรรมใหม่เรียบร้อยแล้ว', 'success');
+        initApp();
 
         // สลับ TEMP ID / URL เป็นข้อมูลจริงจาก Server
         if (!isEdit && result.data && result.data.ID) {
