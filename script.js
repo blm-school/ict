@@ -168,9 +168,11 @@ function refreshCalendarData() {
 function showLoader(show, text) {
   const loaderTextValue = text || 'กำลังทำงาน...';
   const loader = document.getElementById('loading-overlay');
+  if (!loader) return;
+  
   const loaderText = loader.querySelector('.loading-text');
   if (show) {
-    loaderText.innerText = loaderTextValue;
+    if (loaderText) loaderText.innerText = loaderTextValue;
     loader.classList.add('active');
   } else {
     loader.classList.remove('active');
@@ -180,6 +182,8 @@ function showLoader(show, text) {
 function showToast(message, type) {
   const toastType = type || 'info';
   const container = document.getElementById('toast-container');
+  if (!container) return;
+
   const toast = document.createElement('div');
   toast.className = 'toast toast-' + toastType;
 
@@ -217,15 +221,19 @@ function setAdminState(adminLogged, password) {
   const actionBtn = document.getElementById('admin-action-btn');
 
   if (adminLogged) {
-    statusBadge.className = 'admin-badge admin-badge-logged';
-    statusText.innerHTML = '<i class="fa-solid fa-shield-check"></i> โหมดผู้ดูแลระบบ (Admin)';
-    actionBtn.innerHTML = '<i class="fa-solid fa-lock-open"></i> ออกจากระบบ Admin';
-    actionBtn.setAttribute('onclick', 'logoutAdmin()');
+    if (statusBadge) statusBadge.className = 'admin-badge admin-badge-logged';
+    if (statusText) statusText.innerHTML = '<i class="fa-solid fa-shield-check"></i> โหมดผู้ดูแลระบบ (Admin)';
+    if (actionBtn) {
+      actionBtn.innerHTML = '<i class="fa-solid fa-lock-open"></i> ออกจากระบบ Admin';
+      actionBtn.setAttribute('onclick', 'logoutAdmin()');
+    }
   } else {
-    statusBadge.className = 'admin-badge admin-badge-guest';
-    statusText.innerText = 'โหมดผู้ใช้งานทั่วไป';
-    actionBtn.innerHTML = '<i class="fa-solid fa-lock"></i> เข้าสู่ระบบ Admin';
-    actionBtn.setAttribute('onclick', 'openAdminModal()');
+    if (statusBadge) statusBadge.className = 'admin-badge admin-badge-guest';
+    if (statusText) statusText.innerText = 'โหมดผู้ใช้งานทั่วไป';
+    if (actionBtn) {
+      actionBtn.innerHTML = '<i class="fa-solid fa-lock"></i> เข้าสู่ระบบ Admin';
+      actionBtn.setAttribute('onclick', 'openAdminModal()');
+    }
   }
 
   updateAdminActionButtonsVisibility();
@@ -252,11 +260,11 @@ function updateAdminActionButtonsVisibility() {
   const deleteBtn = document.getElementById('admin-delete-btn');
   const editBtn = document.getElementById('admin-edit-btn');
   if (isAdmin) {
-    deleteBtn.classList.remove('hidden');
-    editBtn.classList.remove('hidden');
+    if (deleteBtn) deleteBtn.classList.remove('hidden');
+    if (editBtn) editBtn.classList.remove('hidden');
   } else {
-    deleteBtn.classList.add('hidden');
-    editBtn.classList.add('hidden');
+    if (deleteBtn) deleteBtn.classList.add('hidden');
+    if (editBtn) editBtn.classList.add('hidden');
   }
 }
 
@@ -371,7 +379,8 @@ function handleSearchFilter() { filterEvents(); }
 function filterEvents() {
   console.log("🔍 [Filter] เริ่มคัดกรองข้อมูลกิจกรรม...");
 
-  const searchQuery = document.getElementById('search-input').value.toLowerCase().trim();
+  const searchInput = document.getElementById('search-input');
+  const searchQuery = searchInput ? searchInput.value.toLowerCase().trim() : '';
   const selectedCategories = getSelectedCategoryFilters();
 
   console.log(`   - คำค้นหา: "${searchQuery}"`);
@@ -400,9 +409,13 @@ function filterEvents() {
 // ==========================================================================
 function switchView(view) {
   currentView = view;
-  document.getElementById('view-month-btn').classList.toggle('active', view === 'month');
-  document.getElementById('view-week-btn').classList.toggle('active', view === 'week');
-  document.getElementById('calendar-grid').classList.toggle('week-view', view === 'week');
+  const monthBtn = document.getElementById('view-month-btn');
+  const weekBtn = document.getElementById('view-week-btn');
+  const grid = document.getElementById('calendar-grid');
+
+  if (monthBtn) monthBtn.classList.toggle('active', view === 'month');
+  if (weekBtn) weekBtn.classList.toggle('active', view === 'week');
+  if (grid) grid.classList.toggle('week-view', view === 'week');
   renderCalendar();
 }
 
@@ -424,14 +437,18 @@ function renderCalendar() {
   console.log(`🎨 [Render] เริ่มวาดตารางปฏิทิน | มุมมอง: ${currentView} | วันอ้างอิง: ${currentDate.toDateString()}`);
 
   const grid = document.getElementById('calendar-grid');
+  if (!grid) return;
   grid.innerHTML = '';
 
   const currentMonthName = THAI_MONTHS_FULL[currentDate.getMonth()];
   const currentYearBE = currentDate.getFullYear() + 543;
 
+  const titleDisplay = document.getElementById('calendar-title-display');
+  const sidebarMonthDisplay = document.getElementById('sidebar-month-display');
+
   if (currentView === 'month') {
-    document.getElementById('calendar-title-display').innerText = currentMonthName + ' ' + currentYearBE;
-    document.getElementById('sidebar-month-display').innerText = currentMonthName + ' ' + currentYearBE;
+    if (titleDisplay) titleDisplay.innerText = currentMonthName + ' ' + currentYearBE;
+    if (sidebarMonthDisplay) sidebarMonthDisplay.innerText = currentMonthName + ' ' + currentYearBE;
     renderMonthView(grid);
   } else {
     const sunDate = getSundayOfWeek(currentDate);
@@ -441,8 +458,8 @@ function renderCalendar() {
     const startStr = sunDate.getDate() + ' ' + THAI_MONTHS_FULL[sunDate.getMonth()] + ' ' + (sunDate.getFullYear() + 543);
     const endStr = satDate.getDate() + ' ' + THAI_MONTHS_FULL[satDate.getMonth()] + ' ' + (satDate.getFullYear() + 543);
 
-    document.getElementById('calendar-title-display').innerText = 'ช่วงสัปดาห์: ' + startStr + ' - ' + endStr;
-    document.getElementById('sidebar-month-display').innerText = currentMonthName + ' ' + currentYearBE;
+    if (titleDisplay) titleDisplay.innerText = 'ช่วงสัปดาห์: ' + startStr + ' - ' + endStr;
+    if (sidebarMonthDisplay) sidebarMonthDisplay.innerText = currentMonthName + ' ' + currentYearBE;
     renderWeekView(grid);
   }
 
@@ -626,26 +643,28 @@ function openDetailModal(eventObj) {
   }
 
   const badgeContainer = document.getElementById('detail-categories');
-  badgeContainer.innerHTML = '';
-  const categoriesList = eventObj.Categories ? eventObj.Categories.split(',').map(c => c.trim()) : [];
+  if (badgeContainer) {
+    badgeContainer.innerHTML = '';
+    const categoriesList = eventObj.Categories ? eventObj.Categories.split(',').map(c => c.trim()) : [];
 
-  categoriesList.forEach(cat => {
-    const badge = document.createElement('span');
-    badge.className = 'detail-tag';
-    if (cat === 'ถ่ายภาพ') badge.className += ' tag-photo';
-    else if (cat === 'ถ่ายวิดีโอ') badge.className += ' tag-video';
-    else if (cat === 'เครื่องเสียง(ห้องเฟื่องฟ้า)') badge.className += ' tag-audio-ff';
-    else if (cat === 'เครื่องเสียง(อบจ)') badge.className += ' tag-audio-obj';
-    badge.innerText = cat;
-    badgeContainer.appendChild(badge);
-  });
+    categoriesList.forEach(cat => {
+      const badge = document.createElement('span');
+      badge.className = 'detail-tag';
+      if (cat === 'ถ่ายภาพ') badge.className += ' tag-photo';
+      else if (cat === 'ถ่ายวิดีโอ') badge.className += ' tag-video';
+      else if (cat === 'เครื่องเสียง(ห้องเฟื่องฟ้า)') badge.className += ' tag-audio-ff';
+      else if (cat === 'เครื่องเสียง(อบจ)') badge.className += ' tag-audio-obj';
+      badge.innerText = cat;
+      badgeContainer.appendChild(badge);
+    });
+  }
 
   const previewContainer = document.getElementById('detail-file-preview');
   const attachmentSection = document.getElementById('detail-attachment-section');
-  previewContainer.innerHTML = '';
+  if (previewContainer) previewContainer.innerHTML = '';
 
   if (eventObj['Attachment URL']) {
-    attachmentSection.classList.remove('hidden');
+    if (attachmentSection) attachmentSection.classList.remove('hidden');
 
     const fileUrl = eventObj['Attachment URL'];
     const fileId = eventObj['Attachment ID'];
@@ -660,49 +679,56 @@ function openDetailModal(eventObj) {
     const isAudio = urlLower.startsWith('data:audio') || urlLower.startsWith('blob:') || /\.(mp3|wav|ogg|aac|m4a)/.test(urlLower);
     const isVideo = urlLower.startsWith('data:video') || urlLower.startsWith('blob:') || /\.(mp4|webm|ogg|mov)/.test(urlLower);
 
-    if (isImage) {
-      let embedUrl = fileId ? 'https://lh3.googleusercontent.com/d/' + fileId + '=w800' : fileUrl;
-      previewContainer.innerHTML =
-        '<img class="preview-image" src="' + embedUrl + '" onerror="this.onerror=null; this.src=\'https://placehold.co/400x200?text=Image\';" alt="ภาพแนบ">' +
-        '<a href="' + fileUrl + '" class="attachment-link-btn" target="_blank">' +
-        '<i class="fa-solid fa-up-right-from-square"></i> เปิดดูรูปภาพเต็ม' +
-        '</a>';
-    } else if (isAudio) {
-      let audioSrc = fileId ? 'https://docs.google.com/uc?export=download&id=' + fileId : fileUrl;
-      previewContainer.innerHTML =
-        '<audio controls class="preview-audio" src="' + audioSrc + '"></audio>' +
-        '<a href="' + fileUrl + '" class="attachment-link-btn" target="_blank">' +
-        '<i class="fa-solid fa-arrow-down"></i> ดาวน์โหลดเสียง' +
-        '</a>';
-    } else if (isVideo) {
-      let videoSrc = fileId ? 'https://docs.google.com/uc?export=download&id=' + fileId : fileUrl;
-      previewContainer.innerHTML =
-        '<video controls class="preview-video" src="' + videoSrc + '"></video>' +
-        '<a href="' + fileUrl + '" class="attachment-link-btn" target="_blank">' +
-        '<i class="fa-solid fa-play"></i> เปิดดูวิดีโอ' +
-        '</a>';
-    } else {
-      previewContainer.innerHTML =
-        '<div class="file-icon-box" style="font-size: 2.5rem;">' +
-        '<i class="fa-solid fa-file-pdf text-primary"></i>' +
-        '</div>' +
-        '<p class="modal-sub">กดเปิดด้านล่างเพื่อดาวน์โหลดเอกสารอ้างอิง</p>' +
-        '<a href="' + fileUrl + '" class="attachment-link-btn" target="_blank">' +
-        '<i class="fa-solid fa-download"></i> ดาวน์โหลดเอกสารประกอบ' +
-        '</a>';
+    if (previewContainer) {
+      if (isImage) {
+        let embedUrl = fileId ? 'https://lh3.googleusercontent.com/d/' + fileId + '=w800' : fileUrl;
+        previewContainer.innerHTML =
+          '<img class="preview-image" src="' + embedUrl + '" onerror="this.onerror=null; this.src=\'https://placehold.co/400x200?text=Image\';" alt="ภาพแนบ">' +
+          '<a href="' + fileUrl + '" class="attachment-link-btn" target="_blank">' +
+          '<i class="fa-solid fa-up-right-from-square"></i> เปิดดูรูปภาพเต็ม' +
+          '</a>';
+      } else if (isAudio) {
+        let audioSrc = fileId ? 'https://docs.google.com/uc?export=download&id=' + fileId : fileUrl;
+        previewContainer.innerHTML =
+          '<audio controls class="preview-audio" src="' + audioSrc + '"></audio>' +
+          '<a href="' + fileUrl + '" class="attachment-link-btn" target="_blank">' +
+          '<i class="fa-solid fa-arrow-down"></i> ดาวน์โหลดเสียง' +
+          '</a>';
+      } else if (isVideo) {
+        let videoSrc = fileId ? 'https://docs.google.com/uc?export=download&id=' + fileId : fileUrl;
+        previewContainer.innerHTML =
+          '<video controls class="preview-video" src="' + videoSrc + '"></video>' +
+          '<a href="' + fileUrl + '" class="attachment-link-btn" target="_blank">' +
+          '<i class="fa-solid fa-play"></i> เปิดดูวิดีโอ' +
+          '</a>';
+      } else {
+        previewContainer.innerHTML =
+          '<div class="file-icon-box" style="font-size: 2.5rem;">' +
+          '<i class="fa-solid fa-file-pdf text-primary"></i>' +
+          '</div>' +
+          '<p class="modal-sub">กดเปิดด้านล่างเพื่อดาวน์โหลดเอกสารอ้างอิง</p>' +
+          '<a href="' + fileUrl + '" class="attachment-link-btn" target="_blank">' +
+          '<i class="fa-solid fa-download"></i> ดาวน์โหลดเอกสารประกอบ' +
+          '</a>';
+      }
     }
   } else {
-    attachmentSection.classList.add('hidden');
+    if (attachmentSection) attachmentSection.classList.add('hidden');
   }
 
   updateAdminActionButtonsVisibility();
-  document.getElementById('detail-modal').classList.add('active');
+  const detailModal = document.getElementById('detail-modal');
+  if (detailModal) detailModal.classList.add('active');
 }
 
 function closeDetailModal() {
-  document.getElementById('detail-modal').classList.remove('active');
-  const media = document.getElementById('detail-file-preview').querySelectorAll('audio, video');
-  media.forEach(m => m.pause());
+  const detailModal = document.getElementById('detail-modal');
+  if (detailModal) detailModal.classList.remove('active');
+  const previewContainer = document.getElementById('detail-file-preview');
+  if (previewContainer) {
+    const media = previewContainer.querySelectorAll('audio, video');
+    media.forEach(m => m.pause());
+  }
 }
 
 // ==========================================================================
@@ -759,14 +785,18 @@ function triggerEditEvent() {
   document.getElementById('form-event-id').value = selectedEvent.ID;
   document.getElementById('form-title-input').value = selectedEvent.Title;
   document.getElementById('form-desc-input').value = selectedEvent.Description || '';
-  document.getElementById('form-coordinator-input').value = selectedEvent.Coordinator || '';
-  document.getElementById('form-president-input').value = selectedEvent.President || '';
+  
+  const coordInput = document.getElementById('form-coordinator-input');
+  if (coordInput) coordInput.value = selectedEvent.Coordinator || '';
+
+  const presInput = document.getElementById('form-president-input');
+  if (presInput) presInput.value = selectedEvent.President || '';
 
   const startDateObj = parseSheetDate(selectedEvent['Start Date']);
   const endDateObj = parseSheetDate(selectedEvent['End Date']);
 
-  startPicker.setDate(startDateObj);
-  endPicker.setDate(endDateObj);
+  if (startPicker) startPicker.setDate(startDateObj);
+  if (endPicker) endPicker.setDate(endDateObj);
 
   const categoriesList = selectedEvent.Categories ? selectedEvent.Categories.split(',').map(c => c.trim()) : [];
   const checkboxes = document.querySelectorAll('.form-category-checkbox');
@@ -779,19 +809,24 @@ function triggerEditEvent() {
 
   const editAttachmentStatus = document.getElementById('edit-attachment-status');
   if (selectedEvent['Attachment URL']) {
-    editAttachmentStatus.classList.remove('hidden');
-    document.getElementById('edit-attachment-link').href = selectedEvent['Attachment URL'];
+    if (editAttachmentStatus) editAttachmentStatus.classList.remove('hidden');
+    const attachmentLink = document.getElementById('edit-attachment-link');
+    if (attachmentLink) attachmentLink.href = selectedEvent['Attachment URL'];
   } else {
-    editAttachmentStatus.classList.add('hidden');
+    if (editAttachmentStatus) editAttachmentStatus.classList.add('hidden');
   }
 
-  document.getElementById('form-title').innerText = 'แก้ไขข้อมูลรายการประสาน (แอดมิน)';
-  document.getElementById('form-modal').classList.add('active');
+  const formTitle = document.getElementById('form-title');
+  if (formTitle) formTitle.innerText = 'แก้ไขข้อมูลรายการประสาน (แอดมิน)';
+  
+  const formModal = document.getElementById('form-modal');
+  if (formModal) formModal.classList.add('active');
 }
 
 function markAttachmentForDeletion() {
   deleteExistingAttachment = true;
-  document.getElementById('edit-attachment-status').classList.add('marked-deleted');
+  const editAttachmentStatus = document.getElementById('edit-attachment-status');
+  if (editAttachmentStatus) editAttachmentStatus.classList.add('marked-deleted');
   showToast('ไฟล์แนบเดิมจะถูกคัดแยกเพื่อลบออกถาวรเมื่อบันทึกรายการ', 'info');
 }
 
@@ -811,22 +846,28 @@ function openAddEventModal() {
   const endVal = new Date(now);
   endVal.setHours(endVal.getHours() + 1);
 
-  startPicker.setDate(startVal);
-  endPicker.setDate(endVal);
+  if (startPicker) startPicker.setDate(startVal);
+  if (endPicker) endPicker.setDate(endVal);
 
   const checkboxes = document.querySelectorAll('.form-category-checkbox');
   checkboxes.forEach(cb => cb.checked = false);
 
   clearFileSelection();
   deleteExistingAttachment = false;
-  document.getElementById('edit-attachment-status').classList.add('hidden');
+  
+  const editAttachmentStatus = document.getElementById('edit-attachment-status');
+  if (editAttachmentStatus) editAttachmentStatus.classList.add('hidden');
 
-  document.getElementById('form-title').innerText = 'เพิ่มกิจกรรมใหม่ลงปฏิทิน';
-  document.getElementById('form-modal').classList.add('active');
+  const formTitle = document.getElementById('form-title');
+  if (formTitle) formTitle.innerText = 'เพิ่มกิจกรรมใหม่ลงปฏิทิน';
+  
+  const formModal = document.getElementById('form-modal');
+  if (formModal) formModal.classList.add('active');
 }
 
 function closeFormModal() {
-  document.getElementById('form-modal').classList.remove('active');
+  const formModal = document.getElementById('form-modal');
+  if (formModal) formModal.classList.remove('active');
 }
 
 /**
@@ -852,10 +893,15 @@ function handleFileSelection(event) {
     previewUrl: previewUrl
   };
 
-  document.getElementById('selected-file-name').innerText = file.name;
-  document.getElementById('selected-file-size').innerText = (file.size / (1024 * 1024)).toFixed(2) + ' MB';
-  document.getElementById('selected-file-display').classList.remove('hidden');
-  document.querySelector('.dropzone-prompt').classList.add('hidden');
+  const fileNameEl = document.getElementById('selected-file-name');
+  const fileSizeEl = document.getElementById('selected-file-size');
+  const fileDisplayEl = document.getElementById('selected-file-display');
+  const dropzonePrompt = document.querySelector('.dropzone-prompt');
+
+  if (fileNameEl) fileNameEl.innerText = file.name;
+  if (fileSizeEl) fileSizeEl.innerText = (file.size / (1024 * 1024)).toFixed(2) + ' MB';
+  if (fileDisplayEl) fileDisplayEl.classList.remove('hidden');
+  if (dropzonePrompt) dropzonePrompt.classList.add('hidden');
 }
 
 function clearFileSelection() {
@@ -863,9 +909,14 @@ function clearFileSelection() {
     URL.revokeObjectURL(selectedFile.previewUrl);
   }
   selectedFile = null;
-  document.getElementById('form-file-input').value = '';
-  document.getElementById('selected-file-display').classList.add('hidden');
-  document.querySelector('.dropzone-prompt').classList.remove('hidden');
+
+  const fileInput = document.getElementById('form-file-input');
+  const fileDisplay = document.getElementById('selected-file-display');
+  const dropzonePrompt = document.querySelector('.dropzone-prompt');
+
+  if (fileInput) fileInput.value = '';
+  if (fileDisplay) fileDisplay.classList.add('hidden');
+  if (dropzonePrompt) dropzonePrompt.classList.remove('hidden');
 }
 
 /**
@@ -881,12 +932,21 @@ function readChunkAsBase64(chunk) {
 }
 
 /**
- * ฟังก์ชัน Chunked Upload แบ่งไฟล์ส่งทีละ 5MB ไปยัง Google Apps Script
+ * ฟังก์ชัน Chunked Upload แบ่งไฟล์ส่งทีละ 5MB ไปยัง Google Apps Script พร้อมอัปเดต Progress
  */
 async function uploadFileInChunks(file, onProgress) {
   const CHUNK_SIZE = 5 * 1024 * 1024; // 5MB ต่อ Chunk
   const totalChunks = Math.ceil(file.size / CHUNK_SIZE);
   const uploadId = 'UP_' + Date.now();
+
+  // ดึง Element สำหรับอัปเดตสถานะแบบ Real-time บน UI (ถ้ามี)
+  const statusText = document.getElementById('uploadStatusText') || document.getElementById('upload-status-text');
+  const progressBar = document.getElementById('uploadProgressBar') || document.getElementById('upload-progress-bar');
+  const progressContainer = document.getElementById('progressContainer') || document.getElementById('upload-progress-container');
+
+  if (progressContainer) progressContainer.style.display = 'block';
+  if (statusText) statusText.innerText = `⏳ เริ่มต้นการอัปโหลดไฟล์ (0/${totalChunks})...`;
+  if (progressBar) progressBar.style.width = '0%';
 
   for (let i = 0; i < totalChunks; i++) {
     const start = i * CHUNK_SIZE;
@@ -913,12 +973,19 @@ async function uploadFileInChunks(file, onProgress) {
       throw new Error(result.message || `อัปโหลดไฟล์ส่วนที่ ${i + 1} ล้มเหลว`);
     }
 
+    // คำนวณเปอร์เซ็นต์ความคืบหน้า
+    const percent = Math.round(((i + 1) / totalChunks) * 100);
+
+    // อัปเดต UI Progress บาร์และข้อความแบบ Real-time
+    if (statusText) statusText.innerText = `⏳ กำลังอัปโหลดไฟล์... ${percent}% (${i + 1}/${totalChunks})`;
+    if (progressBar) progressBar.style.width = `${percent}%`;
+
     if (onProgress) {
-      const percent = Math.round(((i + 1) / totalChunks) * 100);
-      onProgress(percent);
+      onProgress(percent, i + 1, totalChunks);
     }
 
     if (result.isComplete) {
+      if (statusText) statusText.innerText = `✅ อัปโหลดไฟล์เสร็จสมบูรณ์!`;
       return { fileId: result.fileId, fileUrl: result.fileUrl };
     }
   }
@@ -935,15 +1002,15 @@ async function handleFormSubmit(e) {
 
   const categoryError = document.getElementById('form-category-error');
   if (checkedCategories.length === 0) {
-    categoryError.classList.remove('hidden');
+    if (categoryError) categoryError.classList.remove('hidden');
     showToast('กรุณาเลือกประเภทหมวดหมู่บริการอย่างน้อย 1 ประเภท', 'error');
     return;
   } else {
-    categoryError.classList.add('hidden');
+    if (categoryError) categoryError.classList.add('hidden');
   }
 
-  const startDateObj = startPicker.selectedDates[0];
-  const endDateObj = endPicker.selectedDates[0];
+  const startDateObj = startPicker ? startPicker.selectedDates[0] : null;
+  const endDateObj = endPicker ? endPicker.selectedDates[0] : null;
 
   if (!startDateObj || !endDateObj) {
     showToast('กรุณาระบุวันและเวลาของกิจกรรมงานให้ครบถ้วน', 'error');
@@ -970,12 +1037,12 @@ async function handleFormSubmit(e) {
 
   let uploadedFileInfo = null;
 
-  // 1. ถ้ามีการแนบไฟล์ ให้ทำการ Chunked Upload (ทีละ 5MB) ก่อน
+  // 1. ถ้ามีการแนบไฟล์ ให้ทำการ Chunked Upload (ทีละ 5MB) พร้อมรายงาน Progress Percent
   if (selectedFile && selectedFile.file) {
     try {
       showLoader(true, 'กำลังเริ่มอัปโหลดไฟล์แนบ (0%)...');
-      uploadedFileInfo = await uploadFileInChunks(selectedFile.file, (percent) => {
-        showLoader(true, `กำลังอัปโหลดไฟล์ขนาดใหญ่ (${percent}%)...`);
+      uploadedFileInfo = await uploadFileInChunks(selectedFile.file, (percent, currentChunk, totalChunks) => {
+        showLoader(true, `กำลังอัปโหลดไฟล์แนบ... ${percent}% (${currentChunk}/${totalChunks})`);
       });
     } catch (err) {
       showLoader(false);
@@ -1089,7 +1156,8 @@ function setupDragAndDrop() {
 
   dropzone.addEventListener('click', function (e) {
     if (e.target.closest('.btn-clear-selection')) return;
-    document.getElementById('form-file-input').click();
+    const fileInput = document.getElementById('form-file-input');
+    if (fileInput) fileInput.click();
   });
 
   ['dragenter', 'dragover'].forEach(eventName => {
@@ -1112,7 +1180,7 @@ function setupDragAndDrop() {
 
     if (files.length > 0) {
       const fileInput = document.getElementById('form-file-input');
-      fileInput.files = files;
+      if (fileInput) fileInput.files = files;
       const event = { target: { files: files } };
       handleFileSelection(event);
     }
@@ -1166,12 +1234,19 @@ function updateDashboard() {
     }
   });
 
-  document.getElementById('stat-month-total').innerText = monthTotal;
-  document.getElementById('stat-today-total').innerText = todayTotal;
-  document.getElementById('stat-cat-photo').innerText = countPhoto;
-  document.getElementById('stat-cat-video').innerText = countVideo;
-  document.getElementById('stat-cat-audio-ff').innerText = countAudioFF;
-  document.getElementById('stat-cat-audio-obj').innerText = countAudioObj;
+  const statMonth = document.getElementById('stat-month-total');
+  const statToday = document.getElementById('stat-today-total');
+  const statPhoto = document.getElementById('stat-cat-photo');
+  const statVideo = document.getElementById('stat-cat-video');
+  const statAudioFF = document.getElementById('stat-cat-audio-ff');
+  const statAudioObj = document.getElementById('stat-cat-audio-obj');
+
+  if (statMonth) statMonth.innerText = monthTotal;
+  if (statToday) statToday.innerText = todayTotal;
+  if (statPhoto) statPhoto.innerText = countPhoto;
+  if (statVideo) statVideo.innerText = countVideo;
+  if (statAudioFF) statAudioFF.innerText = countAudioFF;
+  if (statAudioObj) statAudioObj.innerText = countAudioObj;
 
   upcomingEvents.sort((a, b) => {
     const aDate = parseSheetDate(a['Start Date']) || new Date();
@@ -1180,27 +1255,28 @@ function updateDashboard() {
   });
 
   const upcomingList = document.getElementById('upcoming-list');
-  upcomingList.innerHTML = '';
+  if (upcomingList) {
+    upcomingList.innerHTML = '';
+    const topUpcoming = upcomingEvents.slice(0, 4);
 
-  const topUpcoming = upcomingEvents.slice(0, 4);
+    if (topUpcoming.length === 0) {
+      upcomingList.innerHTML = '<div class="upcoming-empty">ไม่มีกิจกรรมประสานงานที่กำลังจะมาถึงเร็ว ๆ นี้</div>';
+    } else {
+      topUpcoming.forEach(evt => {
+        const card = document.createElement('div');
+        card.className = 'upcoming-card';
+        card.onclick = function () { openDetailModal(evt); };
 
-  if (topUpcoming.length === 0) {
-    upcomingList.innerHTML = '<div class="upcoming-empty">ไม่มีกิจกรรมประสานงานที่กำลังจะมาถึงเร็ว ๆ นี้</div>';
-  } else {
-    topUpcoming.forEach(evt => {
-      const card = document.createElement('div');
-      card.className = 'upcoming-card';
-      card.onclick = function () { openDetailModal(evt); };
+        card.innerHTML =
+          '<div class="upcoming-info">' +
+          '<span class="upcoming-title">' + evt.Title + '</span>' +
+          '<span class="upcoming-time"><i class="fa-regular fa-clock"></i> ' + formatDisplayDate(evt['Start Date']) + '</span>' +
+          '</div>' +
+          '<i class="fa-solid fa-chevron-right text-muted" style="font-size:0.75rem;"></i>';
 
-      card.innerHTML =
-        '<div class="upcoming-info">' +
-        '<span class="upcoming-title">' + evt.Title + '</span>' +
-        '<span class="upcoming-time"><i class="fa-regular fa-clock"></i> ' + formatDisplayDate(evt['Start Date']) + '</span>' +
-        '</div>' +
-        '<i class="fa-solid fa-chevron-right text-muted" style="font-size:0.75rem;"></i>';
-
-      upcomingList.appendChild(card);
-    });
+        upcomingList.appendChild(card);
+      });
+    }
   }
 }
 
