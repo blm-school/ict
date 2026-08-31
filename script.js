@@ -165,18 +165,45 @@ function refreshCalendarData() {
   loadEventsFromServer(true);
 }
 
-function showLoader(show, text) {
-  const loaderTextValue = text || 'กำลังทำงาน...';
+/**
+ * แสดงหรือซ่อน Fullscreen Loader พร้อมรองรับการอัปเดต % Progress Bar บน Overlay
+ */
+function showLoader(show, text = 'กำลังทำงาน...', percent = null) {
   const loader = document.getElementById('loading-overlay');
   if (!loader) return;
-  
+
   const loaderText = loader.querySelector('.loading-text');
+  const overlayProgressContainer = document.getElementById('overlay-progress-container');
+  const overlayProgressBar = document.getElementById('overlay-progress-bar');
+
   if (show) {
-    if (loaderText) loaderText.innerText = loaderTextValue;
+    if (loaderText) loaderText.innerText = text;
+
+    if (percent !== null && overlayProgressContainer && overlayProgressBar) {
+      overlayProgressContainer.style.display = 'block';
+      overlayProgressBar.style.width = `${percent}%`;
+    } else if (overlayProgressContainer) {
+      overlayProgressContainer.style.display = 'none';
+    }
+
     loader.classList.add('active');
   } else {
     loader.classList.remove('active');
+    if (overlayProgressContainer) overlayProgressContainer.style.display = 'none';
   }
+}
+
+/**
+ * เคลียร์ค่าแถบ Progress Bar ใน Modal
+ */
+function resetUploadProgressUI() {
+  const statusText = document.getElementById('uploadStatusText') || document.getElementById('upload-status-text');
+  const progressBar = document.getElementById('uploadProgressBar') || document.getElementById('upload-progress-bar');
+  const progressContainer = document.getElementById('progressContainer') || document.getElementById('upload-progress-container');
+
+  if (statusText) statusText.innerText = '';
+  if (progressBar) progressBar.style.width = '0%';
+  if (progressContainer) progressContainer.style.display = 'none';
 }
 
 function showToast(message, type) {
@@ -805,6 +832,7 @@ function triggerEditEvent() {
   });
 
   clearFileSelection();
+  resetUploadProgressUI();
   deleteExistingAttachment = false;
 
   const editAttachmentStatus = document.getElementById('edit-attachment-status');
@@ -853,6 +881,7 @@ function openAddEventModal() {
   checkboxes.forEach(cb => cb.checked = false);
 
   clearFileSelection();
+  resetUploadProgressUI();
   deleteExistingAttachment = false;
   
   const editAttachmentStatus = document.getElementById('edit-attachment-status');
@@ -866,6 +895,7 @@ function openAddEventModal() {
 }
 
 function closeFormModal() {
+  resetUploadProgressUI();
   const formModal = document.getElementById('form-modal');
   if (formModal) formModal.classList.remove('active');
 }
@@ -902,6 +932,8 @@ function handleFileSelection(event) {
   if (fileSizeEl) fileSizeEl.innerText = (file.size / (1024 * 1024)).toFixed(2) + ' MB';
   if (fileDisplayEl) fileDisplayEl.classList.remove('hidden');
   if (dropzonePrompt) dropzonePrompt.classList.add('hidden');
+
+  resetUploadProgressUI();
 }
 
 function clearFileSelection() {
@@ -917,6 +949,8 @@ function clearFileSelection() {
   if (fileInput) fileInput.value = '';
   if (fileDisplay) fileDisplay.classList.add('hidden');
   if (dropzonePrompt) dropzonePrompt.classList.remove('hidden');
+
+  resetUploadProgressUI();
 }
 
 /**
@@ -1040,12 +1074,13 @@ async function handleFormSubmit(e) {
   // 1. ถ้ามีการแนบไฟล์ ให้ทำการ Chunked Upload (ทีละ 5MB) พร้อมรายงาน Progress Percent
   if (selectedFile && selectedFile.file) {
     try {
-      showLoader(true, 'กำลังเริ่มอัปโหลดไฟล์แนบ (0%)...');
+      showLoader(true, 'กำลังเริ่มอัปโหลดไฟล์แนบ (0%)...', 0);
       uploadedFileInfo = await uploadFileInChunks(selectedFile.file, (percent, currentChunk, totalChunks) => {
-        showLoader(true, `กำลังอัปโหลดไฟล์แนบ... ${percent}% (${currentChunk}/${totalChunks})`);
+        showLoader(true, `กำลังอัปโหลดไฟล์แนบ... ${percent}% (${currentChunk}/${totalChunks})`, percent);
       });
     } catch (err) {
       showLoader(false);
+      resetUploadProgressUI();
       showToast('การอัปโหลดไฟล์ล้มเหลว: ' + err.message, 'error');
       return;
     }
