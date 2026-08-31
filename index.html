@@ -241,13 +241,6 @@
       <p class="loading-text">กำลังซิงโครไนซ์ข้อมูลระบบ...</p>
     </div>
   </div>
-  <!-- ข้อความบอกสถานะ -->
-  <div id="uploadStatusText" class="text-sm text-primary mb-1 fw-bold"></div>
-  
-  <!-- แถบ Progress Bar (ใช้ Bootstrap หรือ CSS Custom) -->
-  <div class="progress mb-3" style="height: 10px; display: none;" id="progressContainer">
-    <div id="uploadProgressBar" class="progress-bar progress-bar-striped progress-bar-animated bg-success" role="progressbar" style="width: 0%"></div>
-  </div>
 
   <!-- หน้าต่าง 1: เข้าสู่ระบบ Admin -->
   <div id="admin-modal" class="modal-overlay">
@@ -364,6 +357,14 @@
             <input type="text" id="form-title-input" class="form-control" placeholder="ระบุชื่องานหรือหัวข้อ..."
               required>
           </div>
+
+            <!-- ข้อความบอกสถานะ -->
+            <div id="uploadStatusText" class="text-sm text-primary mb-1 fw-bold"></div>
+            
+            <!-- แถบ Progress Bar (ใช้ Bootstrap หรือ CSS Custom) -->
+            <div class="progress mb-3" style="height: 10px; display: none;" id="progressContainer">
+              <div id="uploadProgressBar" class="progress-bar progress-bar-striped progress-bar-animated bg-success" role="progressbar" style="width: 0%"></div>
+            </div>
 
           <div class="form-group">
             <label>ประเภทงานที่ขอรับบริการ <span class="required">*</span></label>
