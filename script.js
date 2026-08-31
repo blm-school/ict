@@ -67,9 +67,23 @@ function initApp() {
 
 /**
  * บันทึกข้อมูลอาร์เรย์ events ปัจจุบันลงแคช LocalStorage และสั่งวาดตารางใหม่ทันที
+ * (กรองเอา Object/Data URL ออกก่อนเซฟ เพื่อป้องกันปัญหา LocalStorage เต็ม)
  */
 function saveAndRenderCache() {
-  localStorage.setItem(CACHE_KEY, JSON.stringify(events));
+  const safeEvents = events.map(evt => {
+    const cleanEvt = { ...evt };
+    if (cleanEvt['Attachment URL'] && (cleanEvt['Attachment URL'].startsWith('blob:') || cleanEvt['Attachment URL'].startsWith('data:'))) {
+      cleanEvt['Attachment URL'] = ''; // ปล่อยว่างในแคชชั่วคราว รอ URL จาก Google Drive กลับมา
+    }
+    return cleanEvt;
+  });
+
+  try {
+    localStorage.setItem(CACHE_KEY, JSON.stringify(safeEvents));
+  } catch (e) {
+    console.warn("🚨 [Cache Warning] LocalStorage เต็ม ไม่สามารถบันทึกแคชชั่วคราวได้:", e);
+  }
+
   filterEvents();
 }
 
@@ -123,10 +137,8 @@ function loadEventsFromServer(forceRefresh = false, isInitialLoad = false) {
         events = result.data;
         
         // บันทึกข้อมูลล่าสุดทับลง LocalStorage Cache
-        localStorage.setItem(CACHE_KEY, JSON.stringify(events));
+        saveAndRenderCache();
         console.log(`✅ [API] อัปเดตแคชสำเร็จ (${events.length} รายการ)`);
-
-        filterEvents();
 
         if (forceRefresh) {
           showToast('อัปเดตข้อมูลตารางงานล่าสุดแล้ว', 'success');
@@ -642,10 +654,11 @@ function openDetailModal(eventObj) {
     const isImage = urlLower.includes('drive.google.com/file') ||
       urlLower.includes('lh3.googleusercontent.com') ||
       urlLower.startsWith('data:image') ||
+      urlLower.startsWith('blob:') ||
       /\.(jpg|jpeg|png|gif|webp|svg)/.test(urlLower);
 
-    const isAudio = urlLower.startsWith('data:audio') || /\.(mp3|wav|ogg|aac|m4a)/.test(urlLower);
-    const isVideo = urlLower.startsWith('data:video') || /\.(mp4|webm|ogg|mov)/.test(urlLower);
+    const isAudio = urlLower.startsWith('data:audio') || urlLower.startsWith('blob:') || /\.(mp3|wav|ogg|aac|m4a)/.test(urlLower);
+    const isVideo = urlLower.startsWith('data:video') || urlLower.startsWith('blob:') || /\.(mp4|webm|ogg|mov)/.test(urlLower);
 
     if (isImage) {
       let embedUrl = fileId ? 'https://lh3.googleusercontent.com/d/' + fileId + '=w800' : fileUrl;
@@ -783,7 +796,7 @@ function markAttachmentForDeletion() {
 }
 
 // ==========================================================================
-// Forms Submissions Engine (POST to API with Optimistic UI Update)
+// Forms Submissions Engine & Chunked Upload (5MB Chunks)
 // ==========================================================================
 function openAddEventModal() {
   document.getElementById('form-event-id').value = '';
@@ -816,6 +829,9 @@ function closeFormModal() {
   document.getElementById('form-modal').classList.remove('active');
 }
 
+/**
+ * จัดการการเลือกไฟล์ + ใช้ URL.createObjectURL เพื่อ Preview แบบไม่กิน LocalStorage
+ */
 function handleFileSelection(event) {
   const file = event.target.files[0];
   if (!file) return;
@@ -826,34 +842,89 @@ function handleFileSelection(event) {
     return;
   }
 
-  const reader = new FileReader();
-  reader.onload = function (e) {
-    const dataUrl = e.target.result;
-    const base64Data = dataUrl.split(',')[1];
+  // สร้าง Object URL สำหรับแสดงผลบนหน้าเว็บชั่วคราว (ไม่แปลงเป็น Base64 ล่วงหน้า เพื่อป้องกันเครื่องค้าง)
+  const previewUrl = URL.createObjectURL(file);
 
-    selectedFile = {
-      bytes: base64Data,
-      name: file.name,
-      mimeType: file.type,
-      rawUrl: dataUrl
-    };
-
-    document.getElementById('selected-file-name').innerText = file.name;
-    document.getElementById('selected-file-size').innerText = (file.size / 1024).toFixed(1) + ' KB';
-    document.getElementById('selected-file-display').classList.remove('hidden');
-    document.querySelector('.dropzone-prompt').classList.add('hidden');
+  selectedFile = {
+    file: file,
+    name: file.name,
+    mimeType: file.type,
+    previewUrl: previewUrl
   };
-  reader.readAsDataURL(file);
+
+  document.getElementById('selected-file-name').innerText = file.name;
+  document.getElementById('selected-file-size').innerText = (file.size / (1024 * 1024)).toFixed(2) + ' MB';
+  document.getElementById('selected-file-display').classList.remove('hidden');
+  document.querySelector('.dropzone-prompt').classList.add('hidden');
 }
 
 function clearFileSelection() {
+  if (selectedFile && selectedFile.previewUrl && selectedFile.previewUrl.startsWith('blob:')) {
+    URL.revokeObjectURL(selectedFile.previewUrl);
+  }
   selectedFile = null;
   document.getElementById('form-file-input').value = '';
   document.getElementById('selected-file-display').classList.add('hidden');
   document.querySelector('.dropzone-prompt').classList.remove('hidden');
 }
 
-function handleFormSubmit(e) {
+/**
+ * อ่าน Blob/Chunk เป็น Base64 ชั่วคราวเฉพาะตอนยิง Chunk Upload
+ */
+function readChunkAsBase64(chunk) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result.split(',')[1]);
+    reader.onerror = reject;
+    reader.readAsDataURL(chunk);
+  });
+}
+
+/**
+ * ฟังก์ชัน Chunked Upload แบ่งไฟล์ส่งทีละ 5MB ไปยัง Google Apps Script
+ */
+async function uploadFileInChunks(file, onProgress) {
+  const CHUNK_SIZE = 5 * 1024 * 1024; // 5MB ต่อ Chunk
+  const totalChunks = Math.ceil(file.size / CHUNK_SIZE);
+  const uploadId = 'UP_' + Date.now();
+
+  for (let i = 0; i < totalChunks; i++) {
+    const start = i * CHUNK_SIZE;
+    const end = Math.min(file.size, start + CHUNK_SIZE);
+    const chunkBlob = file.slice(start, end);
+    const base64Data = await readChunkAsBase64(chunkBlob);
+
+    const response = await fetch(API_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify({
+        action: 'uploadChunk',
+        uploadId: uploadId,
+        chunkIndex: i,
+        totalChunks: totalChunks,
+        fileName: file.name,
+        mimeType: file.type,
+        bytes: base64Data
+      })
+    });
+
+    const result = await response.json();
+    if (result.status !== 'success') {
+      throw new Error(result.message || `อัปโหลดไฟล์ส่วนที่ ${i + 1} ล้มเหลว`);
+    }
+
+    if (onProgress) {
+      const percent = Math.round(((i + 1) / totalChunks) * 100);
+      onProgress(percent);
+    }
+
+    if (result.isComplete) {
+      return { fileId: result.fileId, fileUrl: result.fileUrl };
+    }
+  }
+}
+
+async function handleFormSubmit(e) {
   e.preventDefault();
 
   const categoryCbs = document.querySelectorAll('.form-category-checkbox');
@@ -897,10 +968,31 @@ function handleFormSubmit(e) {
     president: document.getElementById('form-president-input') ? document.getElementById('form-president-input').value.trim() : ''
   };
 
-  const backupEvents = JSON.parse(JSON.stringify(events)); // สำรองข้อมูลเดิมเผื่อ Rollback
-  const tempId = eventId || ('TEMP_' + Date.now()); // ID ชั่วคราวกรณีสร้างใหม่
+  let uploadedFileInfo = null;
 
-  // ⚡ 1. Instant Update: ปรับอาร์เรย์ events + บันทึกแคช + เรนเดอร์ตารางทันที
+  // 1. ถ้ามีการแนบไฟล์ ให้ทำการ Chunked Upload (ทีละ 5MB) ก่อน
+  if (selectedFile && selectedFile.file) {
+    try {
+      showLoader(true, 'กำลังเริ่มอัปโหลดไฟล์แนบ (0%)...');
+      uploadedFileInfo = await uploadFileInChunks(selectedFile.file, (percent) => {
+        showLoader(true, `กำลังอัปโหลดไฟล์ขนาดใหญ่ (${percent}%)...`);
+      });
+    } catch (err) {
+      showLoader(false);
+      showToast('การอัปโหลดไฟล์ล้มเหลว: ' + err.message, 'error');
+      return;
+    }
+  }
+
+  showLoader(true, 'กำลังบันทึกข้อมูลกิจกรรม...');
+
+  const backupEvents = JSON.parse(JSON.stringify(events)); // สำรองข้อมูลเดิมเผื่อ Rollback
+  const tempId = eventId || ('TEMP_' + Date.now());
+
+  // ⚡ 2. Instant Update: ปรับอาร์เรย์ events + บันทึกแคช + เรนเดอร์ตารางทันที
+  const finalAttachmentUrl = uploadedFileInfo ? uploadedFileInfo.fileUrl : (selectedFile ? selectedFile.previewUrl : (deleteExistingAttachment ? '' : (isEdit ? (events.find(evt => String(evt.ID) === String(eventId)) || {})['Attachment URL'] : '')));
+  const finalAttachmentId = uploadedFileInfo ? uploadedFileInfo.fileId : '';
+
   if (isEdit) {
     const idx = events.findIndex(evt => String(evt.ID) === String(eventId));
     if (idx !== -1) {
@@ -913,7 +1005,8 @@ function handleFormSubmit(e) {
         Description: eventData.description,
         Coordinator: eventData.coordinator,
         President: eventData.president,
-        'Attachment URL': selectedFile ? selectedFile.rawUrl : (deleteExistingAttachment ? '' : events[idx]['Attachment URL'])
+        'Attachment URL': finalAttachmentUrl,
+        'Attachment ID': finalAttachmentId || events[idx]['Attachment ID']
       };
     }
   } else {
@@ -927,20 +1020,24 @@ function handleFormSubmit(e) {
       Coordinator: eventData.coordinator,
       President: eventData.president,
       Timestamp: formatToSheetDate(new Date()),
-      'Attachment URL': selectedFile ? selectedFile.rawUrl : ''
+      'Attachment URL': finalAttachmentUrl,
+      'Attachment ID': finalAttachmentId
     };
     events.unshift(newEventObj);
   }
 
   saveAndRenderCache();
   closeFormModal();
-  showToast(isEdit ? 'แก้ไขข้อมูลกิจกรรมเรียบร้อยแล้ว' : 'เพิ่มกิจกรรมใหม่เรียบร้อยแล้ว', 'success');
 
-  // 🌐 2. Background Sync: ส่งข้อมูลบันทึกลง GAS เบื้องหลัง
+  // 🌐 3. Background Sync: ส่งข้อมูลหลักบันทึกลง Google Sheet ผ่าน GAS
   const requestBody = {
     action: isEdit ? 'updateEvent' : 'addEvent',
-    eventData: eventData,
-    fileData: selectedFile || null
+    eventData: {
+      ...eventData,
+      attachmentUrl: finalAttachmentUrl,
+      attachmentId: finalAttachmentId
+    },
+    fileData: null // ปล่อยเป็น null เพราะทำการ Chunk Upload แยกไปครบถ้วนแล้ว
   };
 
   if (isEdit) {
@@ -957,10 +1054,12 @@ function handleFormSubmit(e) {
   })
     .then(res => res.json())
     .then(result => {
+      showLoader(false);
       if (result.status === 'success') {
         console.log(`✅ [Background Sync] บันทึกข้อมูลลง GAS สำเร็จ`);
+        showToast(isEdit ? 'แก้ไขข้อมูลกิจกรรมเรียบร้อยแล้ว' : 'เพิ่มกิจกรรมใหม่เรียบร้อยแล้ว', 'success');
 
-        // ถ้าเป็นการสร้างรายการใหม่ สลับ TEMP ID เป็น ID จริงจาก Google Sheet
+        // สลับ TEMP ID / URL เป็นข้อมูลจริงจาก Server
         if (!isEdit && result.data && result.data.ID) {
           const target = events.find(evt => evt.ID === tempId);
           if (target) {
@@ -976,7 +1075,7 @@ function handleFormSubmit(e) {
     })
     .catch(err => {
       console.error("🚨 [Background Sync ล้มเหลว]:", err);
-      // 🔄 Rollback ข้อมูลเดิมถ้าเกิด Error
+      showLoader(false);
       events = backupEvents;
       saveAndRenderCache();
       showToast('การบันทึกล้มเหลว (คืนค่าตารางเดิม): ' + err.message, 'error');
