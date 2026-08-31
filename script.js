@@ -820,8 +820,8 @@ function handleFileSelection(event) {
   const file = event.target.files[0];
   if (!file) return;
 
-  if (file.size > 10 * 1024 * 1024) {
-    showToast('ไฟล์มีขนาดเกินข้อกำหนดสูงสุด (ไม่เกิน 10MB)', 'error');
+  if (file.size > 30 * 1024 * 1024) {
+    showToast('ไฟล์มีขนาดเกินข้อกำหนดสูงสุด (ไม่เกิน 30MB)', 'error');
     clearFileSelection();
     return;
   }
