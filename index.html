@@ -8,7 +8,7 @@
   <link rel="icon" type="image/x-icon" href="images/logo_ict.png">
   <title>ICT โรงเรียนบางละมุง - ปฏิทินกิจกรรม</title>
 
-  <!-- Google Fonts: Outfit and Inter -->
+  <!-- Google Fonts: Outfit, Inter and Sarabun -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link
@@ -234,11 +234,22 @@
     </main>
   </div>
 
-  <!-- หน้าต่างโหลดระบบข้อมูล -->
+  <!-- หน้าต่างโหลดระบบข้อมูล & Fullscreen Overlay สำหรับสถานะการทำงาน/อัปโหลด -->
   <div id="loading-overlay" class="overlay">
     <div class="spinner-container">
       <div class="spinner"></div>
-      <p class="loading-text">กำลังซิงโครไนซ์ข้อมูลระบบ...</p>
+      <p id="loading-text" class="loading-text">กำลังซิงโครไนซ์ข้อมูลระบบ...</p>
+
+      <!-- แถบ Progress Bar แบบ Fullscreen Overlay -->
+      <div id="fullscreen-progress-wrapper" style="display: none; width: 100%; max-width: 320px; margin-top: 15px;">
+        <div class="progress" style="height: 12px; background-color: rgba(255,255,255,0.2); border-radius: 6px; overflow: hidden;">
+          <div id="fullscreen-progress-bar" class="progress-bar progress-bar-striped progress-bar-animated bg-success"
+            role="progressbar" style="width: 0%; height: 100%; transition: width 0.2s ease;"></div>
+        </div>
+        <div id="fullscreen-progress-percent" style="color: #ffffff; font-size: 0.85rem; font-weight: 600; text-align: center; margin-top: 6px;">
+          0%
+        </div>
+      </div>
     </div>
   </div>
 
@@ -358,13 +369,14 @@
               required>
           </div>
 
-            <!-- ข้อความบอกสถานะ -->
-            <div id="uploadStatusText" class="text-sm text-primary mb-1 fw-bold"></div>
-            
-            <!-- แถบ Progress Bar (ใช้ Bootstrap หรือ CSS Custom) -->
-            <div class="progress mb-3" style="height: 10px; display: none;" id="progressContainer">
-              <div id="uploadProgressBar" class="progress-bar progress-bar-striped progress-bar-animated bg-success" role="progressbar" style="width: 0%"></div>
-            </div>
+          <!-- ข้อความบอกสถานะในแบบฟอร์ม -->
+          <div id="uploadStatusText" class="text-sm text-primary mb-1 fw-bold"></div>
+
+          <!-- แถบ Progress Bar ภายในแบบฟอร์ม -->
+          <div class="progress mb-3" style="height: 10px; display: none;" id="progressContainer">
+            <div id="uploadProgressBar" class="progress-bar progress-bar-striped progress-bar-animated bg-success"
+              role="progressbar" style="width: 0%"></div>
+          </div>
 
           <div class="form-group">
             <label>ประเภทงานที่ขอรับบริการ <span class="required">*</span></label>
@@ -483,7 +495,7 @@
     }
   </script>
 
-  <!-- ไฟล์สคริปต์หลักของเรา (วางไว้ท้ายสุดตัวเดียว) -->
+  <!-- ไฟล์สคริปต์หลักของระบบ -->
   <script src="script.js"></script>
 </body>
 
