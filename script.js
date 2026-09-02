@@ -775,12 +775,15 @@ function triggerDeleteEvent() {
     .then(result => {
       if (result.status === 'success') {
         console.log(`✅ [Background Sync] ลบกิจกรรม ID: ${deletedId} บน GAS เรียบร้อยแล้ว`);
+        initApp();
       } else {
         throw new Error(result.message);
+        initApp();
       }
     })
     .catch(err => {
       console.error("🚨 [Background Sync ล้มเหลว]:", err);
+      initApp();
       events = backupEvents;
       saveAndRenderCache();
       showToast('การลบล้มเหลว (คืนค่าตารางเดิม): ' + err.message, 'error');
