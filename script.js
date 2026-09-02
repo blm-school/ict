@@ -184,6 +184,40 @@ function showLoader(show, text = 'กำลังทำงาน...', percent = 
   }
 }
 
+// ==========================================================================
+// Floating Progress Bar Controller (แถบความคืบหน้าลอยด้านล่าง)
+// ==========================================================================
+function showFloatingProgress(titleText, initialPercent = 0) {
+  const container = document.getElementById('floating-progress-container');
+  const title = document.getElementById('floating-progress-title');
+  if (container) {
+    if (titleText && title) {
+      title.innerHTML = `<i class="fa-solid fa-cloud-arrow-up text-primary"></i> ${titleText}`;
+    }
+    updateFloatingProgress(initialPercent);
+    container.classList.add('show');
+  }
+}
+
+function updateFloatingProgress(percent, titleText = null) {
+  const bar = document.getElementById('floating-progress-bar');
+  const percentText = document.getElementById('floating-progress-percent');
+  const title = document.getElementById('floating-progress-title');
+  
+  if (bar) bar.style.width = `${Math.min(100, Math.max(0, percent))}%`;
+  if (percentText) percentText.textContent = `${Math.round(percent)}%`;
+  if (titleText && title) {
+    title.innerHTML = `<i class="fa-solid fa-cloud-arrow-up text-primary"></i> ${titleText}`;
+  }
+}
+
+function hideFloatingProgress() {
+  const container = document.getElementById('floating-progress-container');
+  if (container) {
+    container.classList.remove('show');
+  }
+}
+
 function resetUploadProgressUI() {
   const statusText = document.getElementById('uploadStatusText') || document.getElementById('upload-status-text');
   const progressBar = document.getElementById('uploadProgressBar') || document.getElementById('upload-progress-bar');
@@ -778,16 +812,15 @@ function triggerDeleteEvent() {
         initApp();
       } else {
         throw new Error(result.message);
-        initApp();
       }
     })
     .catch(err => {
       console.error("🚨 [Background Sync ล้มเหลว]:", err);
-      initApp();
       events = backupEvents;
       saveAndRenderCache();
       showToast('การลบล้มเหลว (คืนค่าตารางเดิม): ' + err.message, 'error');
       if (err.message && err.message.includes('รหัสผ่าน')) logoutAdmin();
+      initApp();
     });
 }
 
@@ -845,7 +878,7 @@ function markAttachmentForDeletion() {
 }
 
 // ==========================================================================
-// Forms Submissions Engine & Chunked Upload (5MB Chunks)
+// Forms Submissions Engine & Chunked Upload (3MB Chunks)
 // ==========================================================================
 function openAddEventModal() {
   document.getElementById('form-event-id').value = '';
@@ -945,20 +978,12 @@ function readChunkAsBase64(chunk) {
 }
 
 /**
- * ฟังก์ชัน Chunked Upload แบ่งไฟล์ส่งทีละ 3MB พร้อมซิงค์ Progress Bar ขึ้น Overlay
+ * ฟังก์ชัน Chunked Upload แบ่งไฟล์ส่งทีละ 3MB พร้อมซิงค์ Progress Bar
  */
 async function uploadFileInChunks(file, onProgress) {
   const CHUNK_SIZE = 3 * 1024 * 1024;
   const totalChunks = Math.ceil(file.size / CHUNK_SIZE);
   const uploadId = 'UP_' + Date.now();
-
-  const statusText = document.getElementById('uploadStatusText') || document.getElementById('upload-status-text');
-  const progressBar = document.getElementById('uploadProgressBar') || document.getElementById('upload-progress-bar');
-  const progressContainer = document.getElementById('progressContainer') || document.getElementById('upload-progress-container');
-
-  if (progressContainer) progressContainer.style.display = 'block';
-  if (statusText) statusText.innerText = `⏳ เริ่มต้นการอัปโหลดไฟล์ (0/${totalChunks})...`;
-  if (progressBar) progressBar.style.width = '0%';
 
   for (let i = 0; i < totalChunks; i++) {
     const start = i * CHUNK_SIZE;
@@ -967,9 +992,6 @@ async function uploadFileInChunks(file, onProgress) {
     const base64Data = await readChunkAsBase64(chunkBlob);
 
     const percent = Math.round(((i + 1) / totalChunks) * 100);
-
-    if (statusText) statusText.innerText = `⏳ กำลังอัปโหลดไฟล์... ${percent}% (${i + 1}/${totalChunks})`;
-    if (progressBar) progressBar.style.width = `${percent}%`;
 
     if (onProgress) {
       onProgress(percent, i + 1, totalChunks);
@@ -995,12 +1017,14 @@ async function uploadFileInChunks(file, onProgress) {
     }
 
     if (result.isComplete || result.fileUrl || result.fileId) {
-      if (statusText) statusText.innerText = `✅ อัปโหลดไฟล์เสร็จสมบูรณ์!`;
       return { fileId: result.fileId, fileUrl: result.fileUrl };
     }
   }
 }
 
+/**
+ * ฟังก์ชันประมวลผลการบันทึกแบบฟอร์ม (ปิด Modal ทันที + แสดง Floating Progress Bar)
+ */
 async function handleFormSubmit(e) {
   if (e) e.preventDefault();
 
@@ -1045,20 +1069,26 @@ async function handleFormSubmit(e) {
     president: document.getElementById('form-president-input') ? document.getElementById('form-president-input').value.trim() : ''
   };
 
-  let uploadedFileInfo = null;
+  // 1. ปิด Modal แบบฟอร์มทันทีเมื่อตรวจสอบข้อมูลถูกต้อง
+  closeFormModal();
 
-  // 💥 แสดง Fullscreen Loader + Progress Bar Overlay ทับซ้อนหน้า Modal
-  showLoader(true, 'กำลังเตรียมบันทึกข้อมูล...', 0);
+  // 2. สั่งแสดง Floating Progress Bar ด้านล่างสุดของหน้าจอ
+  showFloatingProgress('กำลังเตรียมบันทึกข้อมูล...', 5);
+
+  let uploadedFileInfo = null;
 
   try {
     if (selectedFile && selectedFile.file) {
-      showLoader(true, 'กำลังเริ่มอัปโหลดไฟล์แนบ...', 5);
+      showFloatingProgress('กำลังอัปโหลดไฟล์แนบ...', 10);
       uploadedFileInfo = await uploadFileInChunks(selectedFile.file, (percent, currentChunk, totalChunks) => {
-        showLoader(true, `กำลังอัปโหลดไฟล์แนบ (${percent}%)... [${currentChunk}/${totalChunks}]`, percent);
+        updateFloatingProgress(
+          Math.min(85, 10 + Math.round(percent * 0.75)), 
+          `กำลังอัปโหลดไฟล์แนบ (${percent}%)... [${currentChunk}/${totalChunks}]`
+        );
       });
     }
 
-    showLoader(true, 'กำลังบันทึกข้อมูลกิจกรรมลงระบบ...', 90);
+    updateFloatingProgress(90, 'กำลังบันทึกข้อมูลลงระบบ...');
 
     const backupEvents = JSON.parse(JSON.stringify(events));
     const tempId = eventId || ('TEMP_' + Date.now());
@@ -1100,7 +1130,6 @@ async function handleFormSubmit(e) {
     }
 
     saveAndRenderCache();
-    closeFormModal();
 
     const requestBody = {
       action: isEdit ? 'updateEvent' : 'addEvent',
@@ -1128,9 +1157,8 @@ async function handleFormSubmit(e) {
     const result = await res.json();
 
     if (result.status === 'success') {
-      showLoader(true, 'บันทึกข้อมูลสำเร็จ!', 100);
+      updateFloatingProgress(100, 'บันทึกข้อมูลเรียบร้อย!');
       console.log(`✅ [Background Sync] บันทึกข้อมูลลง GAS สำเร็จ`);
-      initApp();
 
       if (!isEdit && result.data && result.data.ID) {
         const target = events.find(evt => evt.ID === tempId);
@@ -1143,19 +1171,17 @@ async function handleFormSubmit(e) {
       }
 
       setTimeout(() => {
-        showLoader(false);
+        hideFloatingProgress();
         showToast(isEdit ? 'แก้ไขข้อมูลกิจกรรมเรียบร้อยแล้ว' : 'เพิ่มกิจกรรมใหม่เรียบร้อยแล้ว', 'success');
         initApp();
-      }, 400);
+      }, 1000);
     } else {
       throw new Error(result.message);
-      initApp();
     }
 
   } catch (err) {
     console.error("🚨 [Submit Failure]:", err);
-    showLoader(false);
-    resetUploadProgressUI();
+    hideFloatingProgress();
     showToast('การบันทึกล้มเหลว: ' + err.message, 'error');
     initApp();
   }
