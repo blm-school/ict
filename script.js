@@ -2,9 +2,8 @@
 // External Website Calendar JS Engine (API Connected + LocalStorage Cache)
 // ==========================================================================
 
-// 🔴 นำ URL Web App ของ Google Apps Script มาใส่ที่นี่ 🔴
 const API_URL = 'https://script.google.com/macros/s/AKfycbw5ufgADxQXqvm40HfAmKfoE4d5S1DvddgZ5ZgXIQwGYhFng5iKz3Ykhuvps6c1Kygt/exec';
-const CACHE_KEY = 'gas_calendar_events_cache'; // คีย์สำหรับเก็บแคชใน LocalStorage
+const CACHE_KEY = 'gas_calendar_events_cache';
 
 // Global Application State
 let currentDate = new Date();
@@ -15,7 +14,7 @@ let isAdmin = false;
 let adminPassword = '';
 let selectedEvent = null;
 
-// ตัวแปรเก็บ Instance ปฏิทิน Flatpickr สำหรับฟอร์มควบคุม
+// Instance Flatpickr
 let startPicker = null;
 let endPicker = null;
 
@@ -28,7 +27,7 @@ document.addEventListener('DOMContentLoaded', function () {
 });
 
 /**
- * ตั้งค่าเริ่มต้นแอป และโหลดปฏิทิน (พร้อมตั้งค่า Flatpickr ปี พ.ศ.)
+ * ตั้งค่าเริ่มต้นแอป และโหลดปฏิทิน
  */
 function initApp() {
   console.log("🚀 [System] เริ่มต้นระบบปฏิทินงานประสานผ่าน API...");
@@ -54,26 +53,28 @@ function initApp() {
   startPicker = flatpickr("#form-start-input", flatpickrConfig);
   endPicker = flatpickr("#form-end-input", flatpickrConfig);
 
-  // โหลดสิทธิ์ Admin จาก LocalStorage ของเบราว์เซอร์
   const savedPwd = localStorage.getItem('gas_calendar_admin_pwd') || '';
   if (savedPwd) {
     setAdminState(true, savedPwd);
   }
 
-  // เข้าเว็บครั้งแรก: โหลดแคชมาแสดงทันที + ดึงข้อมูลสดมาอัปเดตแคชเบื้องหลัง
   loadEventsFromServer(false, true);
   setupDragAndDrop();
+
+  const eventForm = document.getElementById('event-form') || document.querySelector('#form-modal form');
+  if (eventForm) {
+    eventForm.addEventListener('submit', handleFormSubmit);
+  }
 }
 
 /**
- * บันทึกข้อมูลอาร์เรย์ events ปัจจุบันลงแคช LocalStorage และสั่งวาดตารางใหม่ทันที
- * (กรองเอา Object/Data URL ออกก่อนเซฟ เพื่อป้องกันปัญหา LocalStorage เต็ม)
+ * บันทึกข้อมูลอาร์เรย์ events ลงแคช LocalStorage และสั่งวาดตารางใหม่
  */
 function saveAndRenderCache() {
   const safeEvents = events.map(evt => {
     const cleanEvt = { ...evt };
     if (cleanEvt['Attachment URL'] && (cleanEvt['Attachment URL'].startsWith('blob:') || cleanEvt['Attachment URL'].startsWith('data:'))) {
-      cleanEvt['Attachment URL'] = ''; // ปล่อยว่างในแคชชั่วคราว รอ URL จาก Google Drive กลับมา
+      cleanEvt['Attachment URL'] = '';
     }
     return cleanEvt;
   });
@@ -88,14 +89,11 @@ function saveAndRenderCache() {
 }
 
 /**
- * 🌐 GET API: โหลดข้อมูลกิจกรรมทั้งหมดจาก Server
- * @param {boolean} forceRefresh - สั่งดึงข้อมูลใหม่ด่วน (ใช้ตอนกดรีเฟรช)
- * @param {boolean} isInitialLoad - สั่งทำงานตอนเข้าเว็บครั้งแรก (แสดงแคชก่อน แล้วยิง API อัปเดตแคชตามหลัง)
+ * โหลดข้อมูลกิจกรรมทั้งหมดจาก Server
  */
 function loadEventsFromServer(forceRefresh = false, isInitialLoad = false) {
   const cachedData = localStorage.getItem(CACHE_KEY);
 
-  // 1. ถ้าเป็นการเข้าเว็บครั้งแรก และมีแคชเดิมอยู่ -> แสดงผลจากแคชทันทีเพื่อความเร็ว
   if (isInitialLoad && cachedData) {
     try {
       events = JSON.parse(cachedData);
@@ -106,7 +104,6 @@ function loadEventsFromServer(forceRefresh = false, isInitialLoad = false) {
       localStorage.removeItem(CACHE_KEY);
     }
   } 
-  // 2. ถ้าไม่ใช่การเข้าเว็บครั้งแรก และไม่ได้สั่ง forceRefresh -> ใช้แคชที่มีแล้วจบทำงาน
   else if (!forceRefresh && cachedData) {
     try {
       events = JSON.parse(cachedData);
@@ -118,7 +115,6 @@ function loadEventsFromServer(forceRefresh = false, isInitialLoad = false) {
     }
   }
 
-  // 3. ยิง API ดึงข้อมูลสดเพื่ออัปเดตแคช
   console.log("🌐 [API] กำลังดึงข้อมูลสดจาก Server เพื่ออัปเดตแคช: ", API_URL);
 
   if (!cachedData || forceRefresh) {
@@ -135,8 +131,6 @@ function loadEventsFromServer(forceRefresh = false, isInitialLoad = false) {
 
       if (result.status === 'success') {
         events = result.data;
-        
-        // บันทึกข้อมูลล่าสุดทับลง LocalStorage Cache
         saveAndRenderCache();
         console.log(`✅ [API] อัปเดตแคชสำเร็จ (${events.length} รายการ)`);
 
@@ -157,16 +151,13 @@ function loadEventsFromServer(forceRefresh = false, isInitialLoad = false) {
     });
 }
 
-/**
- * ฟังก์ชันสำหรับกดปุ่มรีเฟรชข้อมูลบนหน้าเว็บด้วยตนเอง
- */
 function refreshCalendarData() {
   console.log("🔄 [Manual Refresh] ผู้ใช้กดปุ่มรีเฟรชข้อมูล...");
   loadEventsFromServer(true);
 }
 
 /**
- * แสดงหรือซ่อน Fullscreen Loader พร้อมรองรับการอัปเดต % Progress Bar บน Overlay
+ * แสดงหรือซ่อน Fullscreen Loader พร้อมอัปเดต Progress Bar บน Overlay ทับ Modal
  */
 function showLoader(show, text = 'กำลังทำงาน...', percent = null) {
   const loader = document.getElementById('loading-overlay');
@@ -181,7 +172,7 @@ function showLoader(show, text = 'กำลังทำงาน...', percent = 
 
     if (percent !== null && overlayProgressContainer && overlayProgressBar) {
       overlayProgressContainer.style.display = 'block';
-      overlayProgressBar.style.width = `${percent}%`;
+      overlayProgressBar.style.width = `${Math.min(100, Math.max(0, percent))}%`;
     } else if (overlayProgressContainer) {
       overlayProgressContainer.style.display = 'none';
     }
@@ -193,9 +184,6 @@ function showLoader(show, text = 'กำลังทำงาน...', percent = 
   }
 }
 
-/**
- * เคลียร์ค่าแถบ Progress Bar ใน Modal
- */
 function resetUploadProgressUI() {
   const statusText = document.getElementById('uploadStatusText') || document.getElementById('upload-status-text');
   const progressBar = document.getElementById('uploadProgressBar') || document.getElementById('upload-progress-bar');
@@ -232,9 +220,11 @@ function showToast(message, type) {
 // ==========================================================================
 function openAdminModal() {
   document.getElementById('admin-password-input').value = '';
-  document.getElementById('admin-login-error').classList.add('hidden');
+  const errBox = document.getElementById('admin-login-error');
+  if (errBox) errBox.classList.add('hidden');
   document.getElementById('admin-modal').classList.add('active');
 }
+
 function closeAdminModal() {
   document.getElementById('admin-modal').classList.remove('active');
 }
@@ -270,7 +260,6 @@ function submitAdminPassword() {
   const pwdInput = document.getElementById('admin-password-input').value;
   if (!pwdInput) return;
 
-  // บันทึกรหัสผ่านไว้ชั่วคราว ถ้ารหัสผิดระบบจะแจ้งเตือนตอนพยายามลบ/แก้ไขข้อมูล
   localStorage.setItem('gas_calendar_admin_pwd', pwdInput);
   setAdminState(true, pwdInput);
   closeAdminModal();
@@ -296,21 +285,18 @@ function updateAdminActionButtonsVisibility() {
 }
 
 // ==========================================================================
-// Date Utility & Parse Engine (ลบวงเล็บภาษาไทยทิ้งก่อนประมวลผล)
+// Date Utility & Parse Engine
 // ==========================================================================
 function parseSheetDate(dateStr) {
   if (!dateStr) return null;
 
-  // 1. ลบข้อความในวงเล็บ เช่น (เวลาอินโดจีน) ออก เพื่อไม่ให้เบราว์เซอร์สับสน
   let cleanStr = String(dateStr).replace(/\(.*?\)/g, '').trim();
 
-  // 2. ลองให้ Javascript ประมวลผลแบบอัตโนมัติ 
   const autoDate = new Date(cleanStr);
   if (!isNaN(autoDate.getTime())) {
     return autoDate;
   }
 
-  // 3. Fallback เผื่อเจอรูปแบบอื่นๆ (เช่น 18 มิถุนายน 2569)
   try {
     cleanStr = cleanStr.replace('T', ' ');
     const parts = cleanStr.split(' ');
@@ -392,7 +378,7 @@ const THAI_MONTHS_FULL = [
 ];
 
 // ==========================================================================
-// Filtering & Search mechanics
+// Filtering & Search Mechanics
 // ==========================================================================
 function getSelectedCategoryFilters() {
   const checkboxes = document.querySelectorAll('.category-filter-checkbox');
@@ -432,7 +418,7 @@ function filterEvents() {
 }
 
 // ==========================================================================
-// Calendar Views Rendering engine
+// Calendar Views Rendering Engine
 // ==========================================================================
 function switchView(view) {
   currentView = view;
@@ -759,22 +745,20 @@ function closeDetailModal() {
 }
 
 // ==========================================================================
-// Admin Action Flows & API Submissions (Optimistic UI Update)
+// Admin Action Flows
 // ==========================================================================
 function triggerDeleteEvent() {
   if (!selectedEvent) return;
   if (!confirm('คุณแน่ใจว่าต้องการลบกิจกรรม "' + selectedEvent.Title + '" ใช่หรือไม่?')) return;
 
   const deletedId = selectedEvent.ID;
-  const backupEvents = JSON.parse(JSON.stringify(events)); // สำรองข้อมูลเดิมไว้เผื่อ Rollback
+  const backupEvents = JSON.parse(JSON.stringify(events));
 
-  // ⚡ 1. Instant Update: ลบรายการออก และเซฟแคชเรนเดอร์หน้าจอทันที (ไม่ต้องขึ้น Loader)
   events = events.filter(evt => String(evt.ID) !== String(deletedId));
   saveAndRenderCache();
   closeDetailModal();
   showToast('ลบรายการกิจกรรมเรียบร้อยแล้ว', 'success');
 
-  // 🌐 2. Background Sync: ส่งคำสั่งลบไป GAS เบื้องหลัง
   const requestBody = {
     action: 'deleteEvent',
     eventId: deletedId,
@@ -797,7 +781,6 @@ function triggerDeleteEvent() {
     })
     .catch(err => {
       console.error("🚨 [Background Sync ล้มเหลว]:", err);
-      // 🔄 Rollback คืนค่าข้อมูลเดิมกลับเข้าแคชเมื่อเกิดข้อผิดพลาด
       events = backupEvents;
       saveAndRenderCache();
       showToast('การลบล้มเหลว (คืนค่าตารางเดิม): ' + err.message, 'error');
@@ -900,9 +883,6 @@ function closeFormModal() {
   if (formModal) formModal.classList.remove('active');
 }
 
-/**
- * จัดการการเลือกไฟล์ + ใช้ URL.createObjectURL เพื่อ Preview แบบไม่กิน LocalStorage
- */
 function handleFileSelection(event) {
   const file = event.target.files[0];
   if (!file) return;
@@ -913,7 +893,6 @@ function handleFileSelection(event) {
     return;
   }
 
-  // สร้าง Object URL สำหรับแสดงผลบนหน้าเว็บชั่วคราว (ไม่แปลงเป็น Base64 ล่วงหน้า เพื่อป้องกันเครื่องค้าง)
   const previewUrl = URL.createObjectURL(file);
 
   selectedFile = {
@@ -953,9 +932,6 @@ function clearFileSelection() {
   resetUploadProgressUI();
 }
 
-/**
- * อ่าน Blob/Chunk เป็น Base64 ชั่วคราวเฉพาะตอนยิง Chunk Upload
- */
 function readChunkAsBase64(chunk) {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
@@ -966,14 +942,13 @@ function readChunkAsBase64(chunk) {
 }
 
 /**
- * ฟังก์ชัน Chunked Upload แบ่งไฟล์ส่งทีละ 5MB ไปยัง Google Apps Script พร้อมอัปเดต Progress
+ * ฟังก์ชัน Chunked Upload แบ่งไฟล์ส่งทีละ 1MB พร้อมซิงค์ Progress Bar ขึ้น Overlay
  */
 async function uploadFileInChunks(file, onProgress) {
-  const CHUNK_SIZE = 5 * 1024 * 1024; // 5MB ต่อ Chunk
+  const CHUNK_SIZE = 1 * 1024 * 1024;
   const totalChunks = Math.ceil(file.size / CHUNK_SIZE);
   const uploadId = 'UP_' + Date.now();
 
-  // ดึง Element สำหรับอัปเดตสถานะแบบ Real-time บน UI (ถ้ามี)
   const statusText = document.getElementById('uploadStatusText') || document.getElementById('upload-status-text');
   const progressBar = document.getElementById('uploadProgressBar') || document.getElementById('upload-progress-bar');
   const progressContainer = document.getElementById('progressContainer') || document.getElementById('upload-progress-container');
@@ -987,6 +962,15 @@ async function uploadFileInChunks(file, onProgress) {
     const end = Math.min(file.size, start + CHUNK_SIZE);
     const chunkBlob = file.slice(start, end);
     const base64Data = await readChunkAsBase64(chunkBlob);
+
+    const percent = Math.round(((i + 1) / totalChunks) * 100);
+
+    if (statusText) statusText.innerText = `⏳ กำลังอัปโหลดไฟล์... ${percent}% (${i + 1}/${totalChunks})`;
+    if (progressBar) progressBar.style.width = `${percent}%`;
+
+    if (onProgress) {
+      onProgress(percent, i + 1, totalChunks);
+    }
 
     const response = await fetch(API_URL, {
       method: 'POST',
@@ -1007,18 +991,7 @@ async function uploadFileInChunks(file, onProgress) {
       throw new Error(result.message || `อัปโหลดไฟล์ส่วนที่ ${i + 1} ล้มเหลว`);
     }
 
-    // คำนวณเปอร์เซ็นต์ความคืบหน้า
-    const percent = Math.round(((i + 1) / totalChunks) * 100);
-
-    // อัปเดต UI Progress บาร์และข้อความแบบ Real-time
-    if (statusText) statusText.innerText = `⏳ กำลังอัปโหลดไฟล์... ${percent}% (${i + 1}/${totalChunks})`;
-    if (progressBar) progressBar.style.width = `${percent}%`;
-
-    if (onProgress) {
-      onProgress(percent, i + 1, totalChunks);
-    }
-
-    if (result.isComplete) {
+    if (result.isComplete || result.fileUrl || result.fileId) {
       if (statusText) statusText.innerText = `✅ อัปโหลดไฟล์เสร็จสมบูรณ์!`;
       return { fileId: result.fileId, fileUrl: result.fileUrl };
     }
@@ -1026,7 +999,7 @@ async function uploadFileInChunks(file, onProgress) {
 }
 
 async function handleFormSubmit(e) {
-  e.preventDefault();
+  if (e) e.preventDefault();
 
   const categoryCbs = document.querySelectorAll('.form-category-checkbox');
   const checkedCategories = [];
@@ -1071,35 +1044,44 @@ async function handleFormSubmit(e) {
 
   let uploadedFileInfo = null;
 
-  // 1. ถ้ามีการแนบไฟล์ ให้ทำการ Chunked Upload (ทีละ 5MB) พร้อมรายงาน Progress Percent
-  if (selectedFile && selectedFile.file) {
-    try {
-      showLoader(true, 'กำลังเริ่มอัปโหลดไฟล์แนบ (0%)...', 0);
+  // 💥 แสดง Fullscreen Loader + Progress Bar Overlay ทับซ้อนหน้า Modal
+  showLoader(true, 'กำลังเตรียมบันทึกข้อมูล...', 0);
+
+  try {
+    if (selectedFile && selectedFile.file) {
+      showLoader(true, 'กำลังเริ่มอัปโหลดไฟล์แนบ...', 5);
       uploadedFileInfo = await uploadFileInChunks(selectedFile.file, (percent, currentChunk, totalChunks) => {
-        showLoader(true, `กำลังอัปโหลดไฟล์แนบ... ${percent}% (${currentChunk}/${totalChunks})`, percent);
+        showLoader(true, `กำลังอัปโหลดไฟล์แนบ (${percent}%)... [${currentChunk}/${totalChunks}]`, percent);
       });
-    } catch (err) {
-      showLoader(false);
-      resetUploadProgressUI();
-      showToast('การอัปโหลดไฟล์ล้มเหลว: ' + err.message, 'error');
-      return;
     }
-  }
 
-  showLoader(true, 'กำลังบันทึกข้อมูลกิจกรรม...');
+    showLoader(true, 'กำลังบันทึกข้อมูลกิจกรรมลงระบบ...', 90);
 
-  const backupEvents = JSON.parse(JSON.stringify(events)); // สำรองข้อมูลเดิมเผื่อ Rollback
-  const tempId = eventId || ('TEMP_' + Date.now());
+    const backupEvents = JSON.parse(JSON.stringify(events));
+    const tempId = eventId || ('TEMP_' + Date.now());
 
-  // ⚡ 2. Instant Update: ปรับอาร์เรย์ events + บันทึกแคช + เรนเดอร์ตารางทันที
-  const finalAttachmentUrl = uploadedFileInfo ? uploadedFileInfo.fileUrl : (selectedFile ? selectedFile.previewUrl : (deleteExistingAttachment ? '' : (isEdit ? (events.find(evt => String(evt.ID) === String(eventId)) || {})['Attachment URL'] : '')));
-  const finalAttachmentId = uploadedFileInfo ? uploadedFileInfo.fileId : '';
+    const finalAttachmentUrl = uploadedFileInfo ? uploadedFileInfo.fileUrl : (selectedFile ? selectedFile.previewUrl : (deleteExistingAttachment ? '' : (isEdit ? (events.find(evt => String(evt.ID) === String(eventId)) || {})['Attachment URL'] : '')));
+    const finalAttachmentId = uploadedFileInfo ? uploadedFileInfo.fileId : '';
 
-  if (isEdit) {
-    const idx = events.findIndex(evt => String(evt.ID) === String(eventId));
-    if (idx !== -1) {
-      events[idx] = {
-        ...events[idx],
+    if (isEdit) {
+      const idx = events.findIndex(evt => String(evt.ID) === String(eventId));
+      if (idx !== -1) {
+        events[idx] = {
+          ...events[idx],
+          Title: eventData.title,
+          'Start Date': eventData.startDate,
+          'End Date': eventData.endDate,
+          Categories: eventData.categories,
+          Description: eventData.description,
+          Coordinator: eventData.coordinator,
+          President: eventData.president,
+          'Attachment URL': finalAttachmentUrl,
+          'Attachment ID': finalAttachmentId || events[idx]['Attachment ID']
+        };
+      }
+    } else {
+      const newEventObj = {
+        ID: tempId,
         Title: eventData.title,
         'Start Date': eventData.startDate,
         'End Date': eventData.endDate,
@@ -1107,83 +1089,69 @@ async function handleFormSubmit(e) {
         Description: eventData.description,
         Coordinator: eventData.coordinator,
         President: eventData.president,
+        Timestamp: formatToSheetDate(new Date()),
         'Attachment URL': finalAttachmentUrl,
-        'Attachment ID': finalAttachmentId || events[idx]['Attachment ID']
+        'Attachment ID': finalAttachmentId
       };
+      events.unshift(newEventObj);
     }
-  } else {
-    const newEventObj = {
-      ID: tempId,
-      Title: eventData.title,
-      'Start Date': eventData.startDate,
-      'End Date': eventData.endDate,
-      Categories: eventData.categories,
-      Description: eventData.description,
-      Coordinator: eventData.coordinator,
-      President: eventData.president,
-      Timestamp: formatToSheetDate(new Date()),
-      'Attachment URL': finalAttachmentUrl,
-      'Attachment ID': finalAttachmentId
+
+    saveAndRenderCache();
+    closeFormModal();
+
+    const requestBody = {
+      action: isEdit ? 'updateEvent' : 'addEvent',
+      eventData: {
+        ...eventData,
+        attachmentUrl: finalAttachmentUrl,
+        attachmentId: finalAttachmentId
+      },
+      fileData: null
     };
-    events.unshift(newEventObj);
-  }
 
-  saveAndRenderCache();
-  closeFormModal();
+    if (isEdit) {
+      requestBody.adminPassword = adminPassword;
+      requestBody.eventData.id = eventId;
+      requestBody.eventData.deleteExistingAttachment = deleteExistingAttachment;
+    }
 
-  // 🌐 3. Background Sync: ส่งข้อมูลหลักบันทึกลง Google Sheet ผ่าน GAS
-  const requestBody = {
-    action: isEdit ? 'updateEvent' : 'addEvent',
-    eventData: {
-      ...eventData,
-      attachmentUrl: finalAttachmentUrl,
-      attachmentId: finalAttachmentId
-    },
-    fileData: null // ปล่อยเป็น null เพราะทำการ Chunk Upload แยกไปครบถ้วนแล้ว
-  };
-
-  if (isEdit) {
-    requestBody.adminPassword = adminPassword;
-    requestBody.eventData.id = eventId;
-    requestBody.eventData.deleteExistingAttachment = deleteExistingAttachment;
-  }
-
-  fetch(API_URL, {
-    method: 'POST',
-    redirect: 'follow',
-    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-    body: JSON.stringify(requestBody)
-  })
-    .then(res => res.json())
-    .then(result => {
-      showLoader(false);
-      if (result.status === 'success') {
-        console.log(`✅ [Background Sync] บันทึกข้อมูลลง GAS สำเร็จ`);
-        showToast(isEdit ? 'แก้ไขข้อมูลกิจกรรมเรียบร้อยแล้ว' : 'เพิ่มกิจกรรมใหม่เรียบร้อยแล้ว', 'success');
-        initApp();
-
-        // สลับ TEMP ID / URL เป็นข้อมูลจริงจาก Server
-        if (!isEdit && result.data && result.data.ID) {
-          const target = events.find(evt => evt.ID === tempId);
-          if (target) {
-            target.ID = result.data.ID;
-            if (result.data['Attachment URL']) target['Attachment URL'] = result.data['Attachment URL'];
-            if (result.data['Attachment ID']) target['Attachment ID'] = result.data['Attachment ID'];
-            saveAndRenderCache();
-          }
-        }
-      } else {
-        throw new Error(result.message);
-      }
-    })
-    .catch(err => {
-      console.error("🚨 [Background Sync ล้มเหลว]:", err);
-      showLoader(false);
-      events = backupEvents;
-      saveAndRenderCache();
-      showToast('การบันทึกล้มเหลว (คืนค่าตารางเดิม): ' + err.message, 'error');
-      if (err.message && err.message.includes('รหัสผ่าน')) logoutAdmin();
+    const res = await fetch(API_URL, {
+      method: 'POST',
+      redirect: 'follow',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify(requestBody)
     });
+
+    const result = await res.json();
+
+    if (result.status === 'success') {
+      showLoader(true, 'บันทึกข้อมูลสำเร็จ!', 100);
+      console.log(`✅ [Background Sync] บันทึกข้อมูลลง GAS สำเร็จ`);
+
+      if (!isEdit && result.data && result.data.ID) {
+        const target = events.find(evt => evt.ID === tempId);
+        if (target) {
+          target.ID = result.data.ID;
+          if (result.data['Attachment URL']) target['Attachment URL'] = result.data['Attachment URL'];
+          if (result.data['Attachment ID']) target['Attachment ID'] = result.data['Attachment ID'];
+          saveAndRenderCache();
+        }
+      }
+
+      setTimeout(() => {
+        showLoader(false);
+        showToast(isEdit ? 'แก้ไขข้อมูลกิจกรรมเรียบร้อยแล้ว' : 'เพิ่มกิจกรรมใหม่เรียบร้อยแล้ว', 'success');
+      }, 400);
+    } else {
+      throw new Error(result.message);
+    }
+
+  } catch (err) {
+    console.error("🚨 [Submit Failure]:", err);
+    showLoader(false);
+    resetUploadProgressUI();
+    showToast('การบันทึกล้มเหลว: ' + err.message, 'error');
+  }
 }
 
 function setupDragAndDrop() {
@@ -1319,9 +1287,6 @@ function updateDashboard() {
 // ==========================================================================
 // Theme Management Engine
 // ==========================================================================
-/**
- * ฟังก์ชันเริ่มต้นธีม (เรียกใช้เมื่อโหลดหน้าเว็บเสร็จ)
- */
 function initTheme() {
   const savedTheme = localStorage.getItem('theme');
   const isDark = (savedTheme === 'dark');
@@ -1336,9 +1301,6 @@ function initTheme() {
   console.log(`🌓 [Theme] ธีมเริ่มต้นถูกกำหนดเป็น: ${isDark ? 'โหมดมืด (Dark)' : 'โหมดสว่าง (Light)'}`);
 }
 
-/**
- * ฟังก์ชันสำหรับคลิกสลับธีม
- */
 function toggleTheme() {
   const isDark = document.body.classList.toggle('dark-mode');
   localStorage.setItem('theme', isDark ? 'dark' : 'light');
@@ -1346,9 +1308,6 @@ function toggleTheme() {
   console.log(`🌓 [Theme] สลับธีมผู้ใช้เป็น: ${isDark ? 'โหมดมืด' : 'โหมดสว่าง'}`);
 }
 
-/**
- * อัปเดตไอคอนและข้อความบนปุ่มกดตามสถานะจริง
- */
 function updateThemeButtonUI(isDark) {
   const btn = document.getElementById('theme-toggle-btn');
   if (!btn) return;
