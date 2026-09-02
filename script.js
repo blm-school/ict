@@ -942,10 +942,10 @@ function readChunkAsBase64(chunk) {
 }
 
 /**
- * ฟังก์ชัน Chunked Upload แบ่งไฟล์ส่งทีละ 1MB พร้อมซิงค์ Progress Bar ขึ้น Overlay
+ * ฟังก์ชัน Chunked Upload แบ่งไฟล์ส่งทีละ 3MB พร้อมซิงค์ Progress Bar ขึ้น Overlay
  */
 async function uploadFileInChunks(file, onProgress) {
-  const CHUNK_SIZE = 1 * 1024 * 1024;
+  const CHUNK_SIZE = 3 * 1024 * 1024;
   const totalChunks = Math.ceil(file.size / CHUNK_SIZE);
   const uploadId = 'UP_' + Date.now();
 
