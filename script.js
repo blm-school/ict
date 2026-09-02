@@ -1127,6 +1127,7 @@ async function handleFormSubmit(e) {
     if (result.status === 'success') {
       showLoader(true, 'บันทึกข้อมูลสำเร็จ!', 100);
       console.log(`✅ [Background Sync] บันทึกข้อมูลลง GAS สำเร็จ`);
+      initApp();
 
       if (!isEdit && result.data && result.data.ID) {
         const target = events.find(evt => evt.ID === tempId);
