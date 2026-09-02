@@ -1142,9 +1142,11 @@ async function handleFormSubmit(e) {
       setTimeout(() => {
         showLoader(false);
         showToast(isEdit ? 'แก้ไขข้อมูลกิจกรรมเรียบร้อยแล้ว' : 'เพิ่มกิจกรรมใหม่เรียบร้อยแล้ว', 'success');
+        initApp();
       }, 400);
     } else {
       throw new Error(result.message);
+      initApp();
     }
 
   } catch (err) {
@@ -1152,6 +1154,7 @@ async function handleFormSubmit(e) {
     showLoader(false);
     resetUploadProgressUI();
     showToast('การบันทึกล้มเหลว: ' + err.message, 'error');
+    initApp();
   }
 }
 
