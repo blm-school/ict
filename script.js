@@ -717,19 +717,18 @@ function openDetailModal(eventObj) {
     const fileId = eventObj['Attachment ID'];
     const urlLower = fileUrl.toLowerCase();
 
-    const isImage = urlLower.includes('drive.google.com/file') ||
-      urlLower.includes('lh3.googleusercontent.com') ||
-      urlLower.startsWith('data:image') ||
-      urlLower.startsWith('blob:') ||
-      /\.(jpg|jpeg|png|gif|webp|svg)/.test(urlLower);
-
+    // 1. เช็คเงื่อนไขเฉพาะทางก่อน (PDF, Docs, Audio, Video)
+    const isPdf = urlLower.includes('application/pdf') || /\.pdf/.test(urlLower) || urlLower.includes('.pdf');
+    const isDoc = urlLower.includes('docs.google.com/document/d/') || /\.(doc|docx)/.test(urlLower);
     const isAudio = urlLower.startsWith('data:audio') || urlLower.startsWith('blob:') || /\.(mp3|wav|ogg|aac|m4a)/.test(urlLower);
     const isVideo = urlLower.startsWith('data:video') || urlLower.startsWith('blob:') || /\.(mp4|webm|ogg|mov)/.test(urlLower);
 
-    // เพิ่มเงื่อนไขสำหรับ Google Docs และไฟล์ Word (.doc, .docx)
-    const isDoc = urlLower.includes('docs.google.com/document/d/') || /\.(doc|docx)/.test(urlLower);
-    // แยกเงื่อนไขสำหรับไฟล์ PDF โดยเฉพาะ
-    const isPdf = urlLower.includes('application/pdf') || /\.pdf/.test(urlLower);
+    // 2. เช็ครูปภาพ (จำกัดให้แคบลง ไม่เหมารวมทุกลิงก์ drive.google.com/file)
+    const isImage = urlLower.includes('lh3.googleusercontent.com') ||
+      urlLower.startsWith('data:image') ||
+      urlLower.startsWith('blob:') ||
+      /\.(jpg|jpeg|png|gif|webp|svg)/.test(urlLower) ||
+      (urlLower.includes('drive.google.com/file') && !isPdf); // เป็น Drive แต่ต้องไม่ใช่ PDF
     
     if (previewContainer) {
       if (isImage) {
