@@ -707,34 +707,50 @@ function openDetailModal(eventObj) {
   }
 
   const previewContainer = document.getElementById('detail-file-preview');
-  const attachmentSection = document.getElementById('detail-attachment-section');
-  if (previewContainer) previewContainer.innerHTML = '';
+const attachmentSection = document.getElementById('detail-attachment-section');
+if (previewContainer) previewContainer.innerHTML = '';
 
-  if (eventObj['Attachment URL']) {
-    if (attachmentSection) attachmentSection.classList.remove('hidden');
+if (eventObj['Attachment URL']) {
+  if (attachmentSection) attachmentSection.classList.remove('hidden');
 
-    const fileUrl = eventObj['Attachment URL'];
-    const fileId = eventObj['Attachment ID'];
-    const urlLower = fileUrl.toLowerCase();
+  const fileUrl = eventObj['Attachment URL'];
+  const fileId = eventObj['Attachment ID'];
+  const urlLower = fileUrl.toLowerCase();
 
-    // กำหนดว่าอะไรคือรูปภาพจริงๆ (ต้องมีนามสกุลรูป หรือมาจาก lh3 แน่ๆ)
-    const isImage = urlLower.includes('lh3.googleusercontent.com') ||
-      urlLower.startsWith('data:image') ||
-      urlLower.startsWith('blob:') ||
-      /\.(jpg|jpeg|png|gif|webp|svg)/.test(urlLower);
+  // 1. ดึงนามสกุลไฟล์จากคอลัมน์ M (รองรับหลายชื่อ key และตัดจุด . ออก)
+  const rawExt = eventObj['FileType'] || eventObj['Extension'] || eventObj['File Extension'] || eventObj['Attachment Type'] || '';
+  const fileExt = rawExt.toString().toLowerCase().trim().replace('.', '');
 
-    // เช็คไฟล์เสียงและวิดีโอ
-    const isAudio = urlLower.startsWith('data:audio') || urlLower.startsWith('blob:') || /\.(mp3|wav|ogg|aac|m4a)/.test(urlLower);
-    const isVideo = urlLower.startsWith('data:video') || urlLower.startsWith('blob:') || /\.(mp4|webm|ogg|mov)/.test(urlLower);
-    
-    // เช็ค Google Docs / Word
-    const isDoc = urlLower.includes('docs.google.com/document/d/') || /\.(doc|docx)/.test(urlLower);
+  // 2. ตรวจสอบประเภทไฟล์จาก "นามสกุลไฟล์ในคอลัมน์ M" ร่วมกับ "URL"
+  const isImage = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg', 'heic', 'bmp'].includes(fileExt) ||
+    urlLower.includes('lh3.googleusercontent.com') ||
+    urlLower.startsWith('data:image') ||
+    urlLower.startsWith('blob:') ||
+    /\.(jpg|jpeg|png|gif|webp|svg)/.test(urlLower);
 
-    // เช็ค PDF (รวมทั้งที่มีคำว่า .pdf และลิงก์ Drive ทั่วไปที่ไม่ได้ระบุว่าเป็นรูปภาพ)
-    const isPdf = urlLower.includes('application/pdf') || 
-      /\.pdf/.test(urlLower) || 
-      urlLower.includes('.pdf') || 
-      (urlLower.includes('drive.google.com/file') && !isImage);
+  const isPdf = fileExt === 'pdf' ||
+    urlLower.includes('application/pdf') ||
+    /\.pdf/.test(urlLower);
+
+  const isDoc = ['doc', 'docx', 'gdoc', 'rtf', 'txt', 'odt'].includes(fileExt) ||
+    urlLower.includes('docs.google.com/document/d/') ||
+    /\.(doc|docx)/.test(urlLower);
+
+  const isExcel = ['xls', 'xlsx', 'gsheet', 'csv'].includes(fileExt) ||
+    urlLower.includes('docs.google.com/spreadsheets/d/') ||
+    /\.(xls|xlsx|csv)/.test(urlLower);
+
+  const isPowerPoint = ['ppt', 'pptx', 'gslides'].includes(fileExt) ||
+    urlLower.includes('docs.google.com/presentation/d/') ||
+    /\.(ppt|pptx)/.test(urlLower);
+
+  const isAudio = ['mp3', 'wav', 'ogg', 'aac', 'm4a'].includes(fileExt) ||
+    urlLower.startsWith('data:audio') ||
+    /\.(mp3|wav|ogg|aac|m4a)/.test(urlLower);
+
+  const isVideo = ['mp4', 'webm', 'ogg', 'mov', 'avi', 'mkv'].includes(fileExt) ||
+    urlLower.startsWith('data:video') ||
+    /\.(mp4|webm|ogg|mov)/.test(urlLower);
 
     
     // เพิ่ม console.log สำหรับตรวจสอบค่าและผลลัพธ์ของเงื่อนไขต่างๆ
