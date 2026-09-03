@@ -754,16 +754,19 @@ if (eventObj['Attachment URL']) {
 
     
     // เพิ่ม console.log สำหรับตรวจสอบค่าและผลลัพธ์ของเงื่อนไขต่างๆ
+    // Debug Console Log
     console.group('--- File Preview Debugging ---');
     console.log('File URL:', fileUrl);
     console.log('File ID:', fileId);
-    console.log('URL Lowercase:', urlLower);
+    console.log('Column M Ext:', fileExt);
     console.log('------------------------------');
+    console.log('isImage:', isImage);
     console.log('isPdf:', isPdf);
     console.log('isDoc:', isDoc);
+    console.log('isExcel:', isExcel);
+    console.log('isPowerPoint:', isPowerPoint);
     console.log('isAudio:', isAudio);
     console.log('isVideo:', isVideo);
-    console.log('isImage:', isImage);
     console.groupEnd();
     
     if (previewContainer) {
