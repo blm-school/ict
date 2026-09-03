@@ -729,6 +729,19 @@ function openDetailModal(eventObj) {
       urlLower.startsWith('blob:') ||
       /\.(jpg|jpeg|png|gif|webp|svg)/.test(urlLower) ||
       (urlLower.includes('drive.google.com/file') && !isPdf); // เป็น Drive แต่ต้องไม่ใช่ PDF
+
+    // เพิ่ม console.log สำหรับตรวจสอบค่าและผลลัพธ์ของเงื่อนไขต่างๆ
+    console.group('--- File Preview Debugging ---');
+    console.log('File URL:', fileUrl);
+    console.log('File ID:', fileId);
+    console.log('URL Lowercase:', urlLower);
+    console.log('------------------------------');
+    console.log('isPdf:', isPdf);
+    console.log('isDoc:', isDoc);
+    console.log('isAudio:', isAudio);
+    console.log('isVideo:', isVideo);
+    console.log('isImage:', isImage);
+    console.groupEnd();
     
     if (previewContainer) {
       if (isPdf) {
