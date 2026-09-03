@@ -717,19 +717,26 @@ function openDetailModal(eventObj) {
     const fileId = eventObj['Attachment ID'];
     const urlLower = fileUrl.toLowerCase();
 
-    // 1. เช็คเงื่อนไขเฉพาะทางก่อน (PDF, Docs, Audio, Video)
-    const isPdf = urlLower.includes('application/pdf') || /\.pdf/.test(urlLower) || urlLower.includes('.pdf');
-    const isDoc = urlLower.includes('docs.google.com/document/d/') || /\.(doc|docx)/.test(urlLower);
-    const isAudio = urlLower.startsWith('data:audio') || urlLower.startsWith('blob:') || /\.(mp3|wav|ogg|aac|m4a)/.test(urlLower);
-    const isVideo = urlLower.startsWith('data:video') || urlLower.startsWith('blob:') || /\.(mp4|webm|ogg|mov)/.test(urlLower);
-
-    // 2. เช็ครูปภาพ (จำกัดให้แคบลง ไม่เหมารวมทุกลิงก์ drive.google.com/file)
+    // กำหนดว่าอะไรคือรูปภาพจริงๆ (ต้องมีนามสกุลรูป หรือมาจาก lh3 แน่ๆ)
     const isImage = urlLower.includes('lh3.googleusercontent.com') ||
       urlLower.startsWith('data:image') ||
       urlLower.startsWith('blob:') ||
-      /\.(jpg|jpeg|png|gif|webp|svg)/.test(urlLower) ||
-      (urlLower.includes('drive.google.com/file') && !isPdf); // เป็น Drive แต่ต้องไม่ใช่ PDF
+      /\.(jpg|jpeg|png|gif|webp|svg)/.test(urlLower);
 
+    // เช็คไฟล์เสียงและวิดีโอ
+    const isAudio = urlLower.startsWith('data:audio') || urlLower.startsWith('blob:') || /\.(mp3|wav|ogg|aac|m4a)/.test(urlLower);
+    const isVideo = urlLower.startsWith('data:video') || urlLower.startsWith('blob:') || /\.(mp4|webm|ogg|mov)/.test(urlLower);
+    
+    // เช็ค Google Docs / Word
+    const isDoc = urlLower.includes('docs.google.com/document/d/') || /\.(doc|docx)/.test(urlLower);
+
+    // เช็ค PDF (รวมทั้งที่มีคำว่า .pdf และลิงก์ Drive ทั่วไปที่ไม่ได้ระบุว่าเป็นรูปภาพ)
+    const isPdf = urlLower.includes('application/pdf') || 
+      /\.pdf/.test(urlLower) || 
+      urlLower.includes('.pdf') || 
+      (urlLower.includes('drive.google.com/file') && !isImage);
+
+    
     // เพิ่ม console.log สำหรับตรวจสอบค่าและผลลัพธ์ของเงื่อนไขต่างๆ
     console.group('--- File Preview Debugging ---');
     console.log('File URL:', fileUrl);
