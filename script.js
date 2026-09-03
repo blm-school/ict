@@ -726,6 +726,9 @@ function openDetailModal(eventObj) {
     const isAudio = urlLower.startsWith('data:audio') || urlLower.startsWith('blob:') || /\.(mp3|wav|ogg|aac|m4a)/.test(urlLower);
     const isVideo = urlLower.startsWith('data:video') || urlLower.startsWith('blob:') || /\.(mp4|webm|ogg|mov)/.test(urlLower);
 
+    // เพิ่มเงื่อนไขสำหรับ Google Docs และไฟล์ Word (.doc, .docx)
+    const isDoc = urlLower.includes('docs.google.com/document/d/') || /\.(doc|docx)/.test(urlLower);
+
     if (previewContainer) {
       if (isImage) {
         let embedUrl = fileId ? 'https://lh3.googleusercontent.com/d/' + fileId + '=w800' : fileUrl;
@@ -747,6 +750,18 @@ function openDetailModal(eventObj) {
           '<video controls class="preview-video" src="' + videoSrc + '"></video>' +
           '<a href="' + fileUrl + '" class="attachment-link-btn" target="_blank">' +
           '<i class="fa-solid fa-play"></i> เปิดดูวิดีโอ' +
+          '</a>';
+      } else if (isDoc) {
+        // แสดงผลสำหรับ Google Docs หรือไฟล์ Word
+        let docUrl = fileId ? 'https://lh3.googleusercontent.com/d/' + fileId + '=w800' : fileUrl;
+        previewContainer.innerHTML =
+          '<img class="preview-image" src="' + docUrl + '" onerror="this.onerror=null; this.src=\'https://placehold.co/400x200?text=Image\';" alt="ภาพแนบ">' +
+          '<div class="file-icon-box" style="font-size: 2.5rem;">' +
+          '<i class="fa-solid fa-file-word text-primary"></i>' +
+          '</div>' +
+          '<p class="modal-sub">กดเปิดด้านล่างเพื่อดูเอกสาร Word / Google Docs</p>' +
+          '<a href="' + fileUrl + '" class="attachment-link-btn" target="_blank">' +
+          '<i class="fa-solid fa-up-right-from-square"></i> เปิดดูเอกสาร' +
           '</a>';
       } else {
         previewContainer.innerHTML =
