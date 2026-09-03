@@ -722,7 +722,7 @@ if (eventObj['Attachment URL']) {
   const fileExt = rawExt.toString().toLowerCase().trim().replace('.', '');
 
   // 2. ตรวจสอบประเภทไฟล์จาก "นามสกุลไฟล์ในคอลัมน์ M" ร่วมกับ "URL"
-  const isImage = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg', 'heic', 'bmp'].includes(fileExt) ||
+  const isImage = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg', 'heic', 'bmp', 'jfif'].includes(fileExt) ||
     urlLower.includes('lh3.googleusercontent.com') ||
     urlLower.startsWith('data:image') ||
     urlLower.startsWith('blob:') ||
